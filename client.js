@@ -1,26 +1,48 @@
 const http = require('http');
 
-let postData = JSON.stringify({ a: 5000, b: 900 });
+function addNumbers(a, b) {
+    let postData = JSON.stringify({ a: a, b: b });
 
-http.request(
-    {
-        hostname: 'localhost',
-        port: 3000,
-        path: '/add',
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length,
-        },
-    },
-    (res) => {
-        console.log(`statusCode = ${res.statusCode}`);
-        res.on('data', (d) => {
-            console.log(`response data: ${d}`);
-        });
-    }
-)
-    .on('error', (err) => {
-        console.log(`Error: ${err}`);
+    return new Promise((resolve, reject) => {
+        http.request(
+            {
+                hostname: 'localhost',
+                port: 3000,
+                path: '/add',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': postData.length,
+                },
+            },
+            (res) => {
+                // console.log(`statusCode = ${res.statusCode}`);
+                res.on('data', (d) => {
+                    resolve(parseInt(d));
+                });
+            }
+        )
+            .on('error', (err) => {
+                reject(err);
+            })
+            .write(postData);
+    });
+}
+
+// TODO: change to async/await
+// TODO: try to loop async/await in a Fibonacci-generating function
+addNumbers(1, 2)
+    .then((sum) => {
+        console.log(`sum = ${sum}`);
+        return addNumbers(sum, 3);
     })
-    .write(postData);
+    .then((sum) => {
+        console.log(`sum = ${sum}`);
+        return addNumbers(sum, 4);
+    })
+    .then((sum) => {
+        console.log(`total = ${sum}`);
+    })
+    .catch((err) => {
+        console.log(`Error adding numbers: ${err}`);
+    });
