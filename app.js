@@ -27,6 +27,6 @@ app.post('/urlencoded/', urlencodedParser, (req, res) => {
 });
 
 // TODO: replace with regex pattern to match app.get('/e4'), etc.
-app.get('/chess/:moves', chessController.play);
+app.get('/chess/:move', chessController.play);
 
 app.listen(port);
