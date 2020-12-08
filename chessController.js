@@ -71,6 +71,11 @@ async function play(req, res) {
 
         // Validate client's move
         let clientMove = req.params.move;
+        if (clientMove === 'reset') {
+            gameStorage.removeGame(req.connection.remoteAddress);
+            res.send('OK');
+            return;
+        }
         if (clientMove.length !== 4 || !legalMoves.includes(clientMove)) {
             res.send('ERROR');
             return;
