@@ -1,5 +1,7 @@
 const stockfish = require('stockfish');
 const engine = stockfish();
+const { Chess } = require('chess.js');
+const chess = new Chess();
 const gameStorage = require('./gameStorage');
 const constants = require('./constants');
 
@@ -55,63 +57,100 @@ function engineCommand(command, parameter) {
 // TODO: Handle checkmate, stalemate, draw
 //           In place of or in addition to move response, send:
 //               "Checkmate. You win/lose!", "Draw.", or "Stalemate"
-//           Flag game as completed in JSON
+//           Delete game from JSON
 //       Handle promotions
 //       ------------------------------
 //       Later: replace CSV/JSON with actual DB (Mongo?)
 
-async function play(req, res) {
-    try {
-        // Retrieve game, set board, and get legal moves
-        let game = gameStorage.getGame(req.connection.remoteAddress);
-        await engineCommand(constants.commands.setMoves, game.moves);
-        let legalMoves = await engineCommand(constants.commands.display, null);
-        let clientMove = req.params.move;
-
-        switch (clientMove) {
-            case 'reset':
-                gameStorage.removeGame(req.connection.remoteAddress);
-                await engineCommand(constants.commands.setMoves, '');
-                await engineCommand(constants.commands.display, null);
-                res.send('OK');
-                return;
-            case 'go':
-                break;
-            case 'moves':
-                res.send(game.moves);
-                return;
-            default:
-                // Validate client's move
-                if (
-                    clientMove.length !== 4 ||
-                    !legalMoves.includes(clientMove)
-                ) {
-                    res.send('ERROR');
-                    return;
-                } else {
-                    // Display client's move
-                    game.moves += ` ${clientMove}`;
-                    await engineCommand(
-                        constants.commands.setMoves,
-                        game.moves
-                    );
-                    await engineCommand(constants.commands.display, null);
-                }
-                break;
+class ChessGame {
+    // Retrieve game, set board, and get legal moves
+    static async getGame(ipAddress) {
+        try {
+            let chessGame = new ChessGame(ipAddress);
+            chessGame.moveHistory = gameStorage.getGameMoves(
+                chessGame.ipAddress
+            );
+            await engineCommand(
+                constants.commands.setMoves,
+                chessGame.moveHistory
+            );
+            chessGame.legalMoves = await engineCommand(
+                constants.commands.display,
+                null
+            );
+            return chessGame;
+        } catch (err) {
+            throw err;
         }
+    }
 
+    constructor(ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    async delete() {
+        gameStorage.removeGame(this.ipAddress);
+        await engineCommand(constants.commands.setMoves, '');
+        await engineCommand(constants.commands.display, null);
+    }
+
+    getMoveHistory() {
+        return this.moveHistory;
+    }
+
+    validateMove(move) {
+        return move.length === 4 && this.legalMoves.includes(move);
+    }
+
+    async move(move) {
+        this.moveHistory += ` ${move}`;
+        await engineCommand(constants.commands.setMoves, this.moveHistory);
+        await engineCommand(constants.commands.display, null);
+    }
+
+    async makeEngineMove() {
         // Get engine's move and save game
         let engineMove = await engineCommand(
             constants.commands.requestMove,
             null
         );
-        game.moves += ` ${engineMove}`;
-        gameStorage.setGame(req.connection.remoteAddress, game);
+        this.moveHistory += ` ${engineMove}`;
+        gameStorage.setGameMoves(this.ipAddress, this.moveHistory);
 
         // Display board after engine's move
-        await engineCommand(constants.commands.setMoves, game.moves);
+        await engineCommand(constants.commands.setMoves, this.moveHistory);
         await engineCommand(constants.commands.display, null);
 
+        return engineMove;
+    }
+}
+
+async function play(req, res) {
+    try {
+        let chessGame = await ChessGame.getGame(req.connection.remoteAddress);
+
+        let clientMove = req.params.move;
+        switch (clientMove) {
+            case 'reset':
+                await chessGame.delete();
+                res.send('OK');
+                return;
+            case 'go':
+                break;
+            case 'moves':
+                res.send(chessGame.getMoveHistory());
+                return;
+            default:
+                if (chessGame.validateMove(clientMove) === false) {
+                    res.send('ERROR');
+                    return;
+                } else {
+                    await chessGame.move(clientMove);
+                }
+                break;
+        }
+
+        let engineMove = await chessGame.makeEngineMove();
         res.send(engineMove);
     } catch (error) {
         console.log(`Error in play:\n${error}`);
