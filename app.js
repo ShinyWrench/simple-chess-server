@@ -2,13 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const chessController = require('./chessController');
 
+chessController.init();
+
 const app = express();
 const port = 3000;
-
 const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
-
-chessController.stockfishInit();
 
 app.get('/', (req, res) => {
     res.send('Hiya buddy!');
