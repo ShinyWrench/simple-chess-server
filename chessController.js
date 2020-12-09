@@ -52,12 +52,10 @@ function engineCommand(command, parameter) {
     });
 }
 
-// TODO: Make engine commands async (complete before they block)
-//       Handle checkmate, stalemate, draw
+// TODO: Handle checkmate, stalemate, draw
 //           In place of or in addition to move response, send:
 //               "Checkmate. You win/lose!", "Draw.", or "Stalemate"
-//           Append code to end of game's row (values in constants source file)
-//               ex.: "e2e4e7e5DRAW"
+//           Flag game as completed in JSON
 //       Handle promotions
 //       ------------------------------
 //       Later: replace CSV/JSON with actual DB (Mongo?)
@@ -68,23 +66,39 @@ async function play(req, res) {
         let game = gameStorage.getGame(req.connection.remoteAddress);
         await engineCommand(constants.commands.setMoves, game.moves);
         let legalMoves = await engineCommand(constants.commands.display, null);
-
-        // Validate client's move
         let clientMove = req.params.move;
-        if (clientMove === 'reset') {
-            gameStorage.removeGame(req.connection.remoteAddress);
-            res.send('OK');
-            return;
-        }
-        if (clientMove.length !== 4 || !legalMoves.includes(clientMove)) {
-            res.send('ERROR');
-            return;
-        }
 
-        // Display client's move
-        game.moves += ` ${clientMove}`;
-        await engineCommand(constants.commands.setMoves, game.moves);
-        await engineCommand(constants.commands.display, null);
+        switch (clientMove) {
+            case 'reset':
+                gameStorage.removeGame(req.connection.remoteAddress);
+                await engineCommand(constants.commands.setMoves, '');
+                await engineCommand(constants.commands.display, null);
+                res.send('OK');
+                return;
+            case 'go':
+                break;
+            case 'moves':
+                res.send(game.moves);
+                return;
+            default:
+                // Validate client's move
+                if (
+                    clientMove.length !== 4 ||
+                    !legalMoves.includes(clientMove)
+                ) {
+                    res.send('ERROR');
+                    return;
+                } else {
+                    // Display client's move
+                    game.moves += ` ${clientMove}`;
+                    await engineCommand(
+                        constants.commands.setMoves,
+                        game.moves
+                    );
+                    await engineCommand(constants.commands.display, null);
+                }
+                break;
+        }
 
         // Get engine's move and save game
         let engineMove = await engineCommand(
