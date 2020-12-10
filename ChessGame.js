@@ -49,7 +49,10 @@ class ChessGame {
     }
 
     validateMove(move) {
-        return move.length === 4 && this.legalMoves.includes(move);
+        return (
+            (move.length === 4 || move.length === 5) &&
+            this.legalMoves.includes(move)
+        );
     }
 
     async move(move) {
@@ -79,7 +82,7 @@ class ChessGame {
     loadMovesIntoChessJS(moves) {
         this.chessJS = new Chess();
         this.moveHistory.split(' ').forEach((move) => {
-            if (move.length !== 4) {
+            if (move.length !== 4 && move.length !== 5) {
                 return;
             }
             this.chessJS.move(move, { sloppy: true });
@@ -129,7 +132,7 @@ function engineCommand(command, parameter) {
                         /^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/
                     );
                     if (match) {
-                        resolve(match.slice(1, 3).join(''));
+                        resolve(match.slice(1, 4).join(''));
                     }
                     break;
                 default:

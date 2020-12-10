@@ -1,6 +1,6 @@
 const ChessGame = require('./ChessGame');
 
-// TODO: Handle promotions
+// TODO: Handle castling
 //       ------------------------------
 //       Later: replace CSV/JSON with actual DB (Mongo?)
 
