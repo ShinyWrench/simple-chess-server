@@ -1,8 +1,6 @@
 const ChessGame = require('./ChessGame');
 
-// TODO: Handle castling
-//       ------------------------------
-//       Later: replace CSV/JSON with actual DB (Mongo?)
+// TODO: replace CSV/JSON with actual DB (Mongo?)
 
 function init() {
     ChessGame.initEngine();
