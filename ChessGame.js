@@ -4,7 +4,6 @@ const gameStorage = require('./gameStorage');
 const constants = require('./constants');
 
 const { Chess } = require('chess.js');
-const chess = new Chess();
 
 class ChessGame {
     static initEngine() {
@@ -14,10 +13,11 @@ class ChessGame {
     // Retrieve game, set board, and get legal moves
     static async getGame(ipAddress) {
         try {
-            let chessGame = new ChessGame(ipAddress);
-            chessGame.moveHistory = gameStorage.getGameMoves(
-                chessGame.ipAddress
+            let chessGame = new ChessGame(
+                ipAddress,
+                gameStorage.getGameMoves(ipAddress)
             );
+            chessGame.loadMovesIntoChessJS(chessGame.moveHistory);
             await engineCommand(
                 constants.commands.setMoves,
                 chessGame.moveHistory
@@ -32,11 +32,13 @@ class ChessGame {
         }
     }
 
-    constructor(ipAddress) {
+    constructor(ipAddress, moveHistory) {
         this.ipAddress = ipAddress;
+        this.moveHistory = moveHistory;
+        this.chessJS = null;
     }
 
-    async delete() {
+    async deleteStorage() {
         gameStorage.removeGame(this.ipAddress);
         await engineCommand(constants.commands.setMoves, '');
         await engineCommand(constants.commands.display, null);
@@ -52,6 +54,7 @@ class ChessGame {
 
     async move(move) {
         this.moveHistory += ` ${move}`;
+        this.loadMovesIntoChessJS(move);
         await engineCommand(constants.commands.setMoves, this.moveHistory);
         await engineCommand(constants.commands.display, null);
     }
@@ -63,6 +66,7 @@ class ChessGame {
             null
         );
         this.moveHistory += ` ${engineMove}`;
+        this.loadMovesIntoChessJS(engineMove);
         gameStorage.setGameMoves(this.ipAddress, this.moveHistory);
 
         // Display board after engine's move
@@ -70,6 +74,39 @@ class ChessGame {
         await engineCommand(constants.commands.display, null);
 
         return engineMove;
+    }
+
+    loadMovesIntoChessJS(moves) {
+        this.chessJS = new Chess();
+        this.moveHistory.split(' ').forEach((move) => {
+            if (move.length !== 4) {
+                return;
+            }
+            this.chessJS.move(move, { sloppy: true });
+        });
+    }
+
+    isGameOver() {
+        return this.chessJS.game_over();
+    }
+
+    getEndOfGameState() {
+        if (this.chessJS.in_checkmate()) {
+            return 'checkmate';
+        }
+        if (this.chessJS.in_draw()) {
+            return 'draw';
+        }
+        if (this.chessJS.in_stalemate()) {
+            return 'stalemate';
+        }
+        if (this.chessJS.in_threefold_repetition()) {
+            return 'draw';
+        }
+        if (this.chessJS.insufficient_material()) {
+            return 'draw';
+        }
+        return 'unknown';
     }
 }
 
@@ -100,9 +137,8 @@ function engineCommand(command, parameter) {
                     break;
             }
 
-            // TODO: Match other patterns to handle all possible command values.
-            //       Make sure I'm thorough so the request doesn't hang pending the
-            //       right engine output.
+            // TODO: Make sure I'm matching patterns to handle all possible command
+            //       values so the request doesn't hang pending the right engine output.
             //       Set a timeout?
         };
         if (parameter != null) {

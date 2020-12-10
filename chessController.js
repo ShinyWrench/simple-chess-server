@@ -1,10 +1,6 @@
 const ChessGame = require('./ChessGame');
 
-// TODO: Handle checkmate, stalemate, draw
-//           In place of or in addition to move response, send:
-//               "Checkmate. You win/lose!", "Draw.", or "Stalemate"
-//           Delete game from JSON
-//       Handle promotions
+// TODO: Handle promotions
 //       ------------------------------
 //       Later: replace CSV/JSON with actual DB (Mongo?)
 
@@ -19,7 +15,7 @@ async function play(req, res) {
         let clientMove = req.params.move;
         switch (clientMove) {
             case 'reset':
-                await chessGame.delete();
+                await chessGame.deleteStorage();
                 res.send('OK');
                 return;
             case 'go':
@@ -29,19 +25,31 @@ async function play(req, res) {
                 return;
             default:
                 if (chessGame.validateMove(clientMove) === false) {
-                    res.send('ERROR');
+                    res.send('error');
                     return;
                 } else {
                     await chessGame.move(clientMove);
+                    if (chessGame.isGameOver()) {
+                        await chessGame.deleteStorage();
+                        res.send(chessGame.getEndOfGameState());
+                        return;
+                    }
                 }
                 break;
         }
 
         let engineMove = await chessGame.makeEngineMove();
-        res.send(engineMove);
+        if (chessGame.isGameOver()) {
+            await chessGame.deleteStorage();
+            res.send(`${engineMove},${chessGame.getEndOfGameState()}`);
+            return;
+        } else {
+            res.send(engineMove);
+            return;
+        }
     } catch (error) {
-        console.log(`Error in play:\n${error}`);
-        res.send('Error!');
+        console.log(`Error in play:\n${error.stack}`);
+        res.send('error');
     }
 }
 

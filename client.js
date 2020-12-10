@@ -9,6 +9,6 @@ request()
     .then((text) => {
         console.log(`Response: ${text}`);
     })
-    .catch((err) => {
-        console.log(`Error: ${err}`);
+    .catch((error) => {
+        console.log(`request error\n${error.stack}`);
     });
