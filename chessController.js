@@ -1,8 +1,11 @@
 const ChessGame = require('./ChessGame');
 
-// TODO: /chess/showboard ('showboard' move... or toggle whether
-//       to include in every move response)
-//       put on github
+// TODO:
+//       use multiple routes instead of switch-case in controller
+//       allow client to change difficulty level
+//       allow client to get a list of commands ('/help')
+//       '/board' or '/showboard' route
+//           show board or toggle whether to include in every move response
 //       replace CSV/JSON with actual DB (Mongo?)
 
 function init() {
