@@ -1,6 +1,9 @@
 const ChessGame = require('./ChessGame');
 
-// TODO: replace CSV/JSON with actual DB (Mongo?)
+// TODO: /chess/showboard ('showboard' move... or toggle whether
+//       to include in every move response)
+//       put on github
+//       replace CSV/JSON with actual DB (Mongo?)
 
 function init() {
     ChessGame.initEngine();
@@ -8,12 +11,14 @@ function init() {
 
 async function play(req, res) {
     try {
-        let chessGame = await ChessGame.getGame(req.connection.remoteAddress);
+        let chessGame = await ChessGame.resumeOrStart(
+            req.connection.remoteAddress
+        );
 
         let clientMove = req.params.move;
         switch (clientMove) {
-            case 'reset':
-                await chessGame.deleteStorage();
+            case 'resign':
+                await chessGame.resign();
                 res.send('OK');
                 return;
             case 'go':
@@ -22,13 +27,12 @@ async function play(req, res) {
                 res.send(chessGame.getMoveHistory());
                 return;
             default:
-                if (chessGame.validateMove(clientMove) === false) {
+                if ((await chessGame.validateMove(clientMove)) === false) {
                     res.send('error');
                     return;
                 } else {
                     await chessGame.move(clientMove);
                     if (chessGame.isGameOver()) {
-                        await chessGame.deleteStorage();
                         res.send(chessGame.getEndOfGameState());
                         return;
                     }
@@ -38,7 +42,6 @@ async function play(req, res) {
 
         let engineMove = await chessGame.makeEngineMove();
         if (chessGame.isGameOver()) {
-            await chessGame.deleteStorage();
             res.send(`${engineMove},${chessGame.getEndOfGameState()}`);
             return;
         } else {

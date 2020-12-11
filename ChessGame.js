@@ -11,20 +11,16 @@ class ChessGame {
     }
 
     // Retrieve game, set board, and get legal moves
-    static async getGame(ipAddress) {
+    static async resumeOrStart(ipAddress) {
         try {
-            let chessGame = new ChessGame(
-                ipAddress,
-                gameStorage.getGameMoves(ipAddress)
-            );
-            chessGame.loadMovesIntoChessJS(chessGame.moveHistory);
+            let moves = gameStorage.getMovesFromCurrentGame(ipAddress);
+            if (moves == null) {
+                moves = '';
+            }
+            let chessGame = new ChessGame(ipAddress, moves);
             await engineCommand(
                 constants.commands.setMoves,
                 chessGame.moveHistory
-            );
-            chessGame.legalMoves = await engineCommand(
-                constants.commands.display,
-                null
             );
             return chessGame;
         } catch (err) {
@@ -35,57 +31,63 @@ class ChessGame {
     constructor(ipAddress, moveHistory) {
         this.ipAddress = ipAddress;
         this.moveHistory = moveHistory;
-        this.chessJS = null;
-    }
-
-    async deleteStorage() {
-        gameStorage.removeGame(this.ipAddress);
-        await engineCommand(constants.commands.setMoves, '');
-        await engineCommand(constants.commands.display, null);
+        this.chessJS = new Chess();
+        this.loadMovesIntoChessJS(this.moveHistory);
     }
 
     getMoveHistory() {
         return this.moveHistory;
     }
 
-    validateMove(move) {
+    async validateMove(move) {
+        let legalMoves = await engineCommand(constants.commands.display, null);
         return (
             (move.length === 4 || move.length === 5) &&
-            this.legalMoves.includes(move)
+            legalMoves.includes(move)
         );
+    }
+
+    async resign() {
+        gameStorage.closeCurrentGame(this.ipAddress, 'resign');
+        this.moveHistory = '';
+        this.chessJS = new Chess();
+        await engineCommand(constants.commands.setMoves, '');
+        await engineCommand(constants.commands.display, null);
     }
 
     async move(move) {
         this.moveHistory += ` ${move}`;
-        this.loadMovesIntoChessJS(move);
+        this.loadMoveIntoChessJS(move);
+        gameStorage.addMove(this.ipAddress, move);
+        if (this.isGameOver()) {
+            gameStorage.closeCurrentGame(
+                this.ipAddress,
+                this.getEndOfGameState()
+            );
+        }
         await engineCommand(constants.commands.setMoves, this.moveHistory);
         await engineCommand(constants.commands.display, null);
     }
 
     async makeEngineMove() {
-        // Get engine's move and save game
         let engineMove = await engineCommand(
             constants.commands.requestMove,
             null
         );
-        this.moveHistory += ` ${engineMove}`;
-        this.loadMovesIntoChessJS(engineMove);
-        gameStorage.setGameMoves(this.ipAddress, this.moveHistory);
-
-        // Display board after engine's move
-        await engineCommand(constants.commands.setMoves, this.moveHistory);
-        await engineCommand(constants.commands.display, null);
-
+        await this.move(engineMove);
         return engineMove;
     }
 
+    loadMoveIntoChessJS(move) {
+        this.chessJS.move(move, { sloppy: true });
+    }
+
     loadMovesIntoChessJS(moves) {
-        this.chessJS = new Chess();
-        this.moveHistory.split(' ').forEach((move) => {
+        moves.split(' ').forEach((move) => {
             if (move.length !== 4 && move.length !== 5) {
                 return;
             }
-            this.chessJS.move(move, { sloppy: true });
+            this.loadMoveIntoChessJS(move);
         });
     }
 
