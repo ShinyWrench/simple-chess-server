@@ -12,26 +12,28 @@ function init() {
     ChessGame.initEngine();
 }
 
+async function loadGame(req, res, next) {
+    req.chessGame = await ChessGame.resumeOrStart(req.connection.remoteAddress);
+    next();
+}
+
 async function move(req, res) {
     try {
-        let chessGame = await ChessGame.resumeOrStart(
-            req.connection.remoteAddress
-        );
         let clientMove = req.params.move;
-        if ((await chessGame.validateMove(clientMove)) === false) {
+        if ((await req.chessGame.validateMove(clientMove)) === false) {
             res.send('error');
             return;
         } else {
-            await chessGame.move(clientMove);
-            if (chessGame.isGameOver()) {
-                res.send(chessGame.getEndOfGameState());
+            await req.chessGame.move(clientMove);
+            if (req.chessGame.isGameOver()) {
+                res.send(req.chessGame.getEndOfGameState());
                 return;
             }
         }
 
-        let engineMove = await chessGame.makeEngineMove();
-        if (chessGame.isGameOver()) {
-            res.send(`${engineMove},${chessGame.getEndOfGameState()}`);
+        let engineMove = await req.chessGame.makeEngineMove();
+        if (req.chessGame.isGameOver()) {
+            res.send(`${engineMove},${req.chessGame.getEndOfGameState()}`);
             return;
         } else {
             res.send(engineMove);
@@ -45,12 +47,9 @@ async function move(req, res) {
 
 async function makeEngineMove(req, res) {
     try {
-        let chessGame = await ChessGame.resumeOrStart(
-            req.connection.remoteAddress
-        );
-        let engineMove = await chessGame.makeEngineMove();
-        if (chessGame.isGameOver()) {
-            res.send(`${engineMove},${chessGame.getEndOfGameState()}`);
+        let engineMove = await req.chessGame.makeEngineMove();
+        if (req.chessGame.isGameOver()) {
+            res.send(`${engineMove},${req.chessGame.getEndOfGameState()}`);
             return;
         } else {
             res.send(engineMove);
@@ -64,10 +63,7 @@ async function makeEngineMove(req, res) {
 
 async function getMoves(req, res) {
     try {
-        let chessGame = await ChessGame.resumeOrStart(
-            req.connection.remoteAddress
-        );
-        res.send(chessGame.getMoveHistory());
+        res.send(req.chessGame.getMoveHistory());
     } catch (err) {
         console.log(`Error in getMoves:\n${err.stack}`);
         res.send('error');
@@ -76,10 +72,7 @@ async function getMoves(req, res) {
 
 async function resign(req, res) {
     try {
-        let chessGame = await ChessGame.resumeOrStart(
-            req.connection.remoteAddress
-        );
-        await chessGame.resign();
+        await req.chessGame.resign();
         res.send('OK');
     } catch (err) {
         console.log(`Error in resign:\n${err.stack}`);
@@ -88,6 +81,7 @@ async function resign(req, res) {
 }
 
 exports.init = init;
+exports.loadGame = loadGame;
 exports.move = move;
 exports.makeEngineMove = makeEngineMove;
 exports.getMoves = getMoves;
