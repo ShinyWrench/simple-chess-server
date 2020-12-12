@@ -3,6 +3,7 @@ const engine = stockfish();
 const gameStorage = require('./gameStorage');
 const constants = require('./constants');
 
+// https://github.com/jhlywa/chess.js
 const { Chess } = require('chess.js');
 
 class ChessGame {
@@ -10,7 +11,7 @@ class ChessGame {
         engine.onmessage = (line) => {};
     }
 
-    // Retrieve game, set board, and get legal moves
+    // Retrieve game, set up position reporter, set up engine
     static async resumeOrStart(ipAddress) {
         try {
             let moves = gameStorage.getMovesFromCurrentGame(ipAddress);
@@ -31,8 +32,8 @@ class ChessGame {
     constructor(ipAddress, moveHistory) {
         this.ipAddress = ipAddress;
         this.moveHistory = moveHistory;
-        this.chessJS = new Chess();
-        this.loadMovesIntoChessJS(this.moveHistory);
+        this.positionReporter = new Chess();
+        this.updatePositionReporter({ moves: this.moveHistory });
     }
 
     getMoveHistory() {
@@ -50,14 +51,14 @@ class ChessGame {
     async resign() {
         gameStorage.closeCurrentGame(this.ipAddress, 'resign');
         this.moveHistory = '';
-        this.chessJS = new Chess();
+        this.positionReporter = new Chess();
         await engineCommand(constants.commands.setMoves, '');
         await engineCommand(constants.commands.display, null);
     }
 
     async move(move) {
         this.moveHistory += ` ${move}`;
-        this.loadMoveIntoChessJS(move);
+        this.updatePositionReporter({ move: move });
         gameStorage.addMove(this.ipAddress, move);
         if (this.isGameOver()) {
             gameStorage.closeCurrentGame(
@@ -78,37 +79,39 @@ class ChessGame {
         return engineMove;
     }
 
-    loadMoveIntoChessJS(move) {
-        this.chessJS.move(move, { sloppy: true });
-    }
-
-    loadMovesIntoChessJS(moves) {
-        moves.split(' ').forEach((move) => {
-            if (move.length !== 4 && move.length !== 5) {
-                return;
-            }
-            this.loadMoveIntoChessJS(move);
-        });
+    updatePositionReporter(update) {
+        if ('move' in update) {
+            this.positionReporter.move(update.move, { sloppy: true });
+        } else if ('moves' in update) {
+            update.moves.split(' ').forEach((move) => {
+                if (move.length !== 4 && move.length !== 5) {
+                    return;
+                }
+                this.positionReporter.move(move, { sloppy: true });
+            });
+        } else {
+            throw `updatePositionReporter(${update}):\nInvalid key(s) in update`;
+        }
     }
 
     isGameOver() {
-        return this.chessJS.game_over();
+        return this.positionReporter.game_over();
     }
 
     getEndOfGameState() {
-        if (this.chessJS.in_checkmate()) {
+        if (this.positionReporter.in_checkmate()) {
             return 'checkmate';
         }
-        if (this.chessJS.in_draw()) {
+        if (this.positionReporter.in_draw()) {
             return 'draw';
         }
-        if (this.chessJS.in_stalemate()) {
+        if (this.positionReporter.in_stalemate()) {
             return 'stalemate';
         }
-        if (this.chessJS.in_threefold_repetition()) {
+        if (this.positionReporter.in_threefold_repetition()) {
             return 'draw';
         }
-        if (this.chessJS.insufficient_material()) {
+        if (this.positionReporter.insufficient_material()) {
             return 'draw';
         }
         return 'unknown';

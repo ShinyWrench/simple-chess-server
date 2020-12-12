@@ -1,7 +1,8 @@
 const ChessGame = require('./ChessGame');
 
 // TODO:
-//       use multiple routes instead of switch-case in controller
+//       set up default 'keepAlive' arg in ChessGame move & resign methods
+//           controls whether 'positionReporter' is updated, engine moves are updated
 //       allow client to change difficulty level
 //       allow client to get a list of commands ('/help')
 //       '/board' or '/showboard' route
