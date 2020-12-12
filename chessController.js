@@ -12,39 +12,21 @@ function init() {
     ChessGame.initEngine();
 }
 
-async function getMoves(req, res) {
-    let chessGame = await ChessGame.resumeOrStart(req.connection.remoteAddress);
-    res.send(chessGame.getMoveHistory());
-}
-
-async function resign(req, res) {
-    let chessGame = await ChessGame.resumeOrStart(req.connection.remoteAddress);
-    await chessGame.resign();
-    res.send('OK');
-}
-
-async function play(req, res) {
+async function move(req, res) {
     try {
         let chessGame = await ChessGame.resumeOrStart(
             req.connection.remoteAddress
         );
-
         let clientMove = req.params.move;
-        switch (clientMove) {
-            case 'go':
-                break;
-            default:
-                if ((await chessGame.validateMove(clientMove)) === false) {
-                    res.send('error');
-                    return;
-                } else {
-                    await chessGame.move(clientMove);
-                    if (chessGame.isGameOver()) {
-                        res.send(chessGame.getEndOfGameState());
-                        return;
-                    }
-                }
-                break;
+        if ((await chessGame.validateMove(clientMove)) === false) {
+            res.send('error');
+            return;
+        } else {
+            await chessGame.move(clientMove);
+            if (chessGame.isGameOver()) {
+                res.send(chessGame.getEndOfGameState());
+                return;
+            }
         }
 
         let engineMove = await chessGame.makeEngineMove();
@@ -55,13 +37,58 @@ async function play(req, res) {
             res.send(engineMove);
             return;
         }
-    } catch (error) {
-        console.log(`Error in play:\n${error.stack}`);
+    } catch (err) {
+        console.log(`Error in move:\n${err.stack}`);
+        res.send('error');
+    }
+}
+
+async function makeEngineMove(req, res) {
+    try {
+        let chessGame = await ChessGame.resumeOrStart(
+            req.connection.remoteAddress
+        );
+        let engineMove = await chessGame.makeEngineMove();
+        if (chessGame.isGameOver()) {
+            res.send(`${engineMove},${chessGame.getEndOfGameState()}`);
+            return;
+        } else {
+            res.send(engineMove);
+            return;
+        }
+    } catch (err) {
+        console.log(`Error in makeEngineMove:\n${err.stack}`);
+        res.send('error');
+    }
+}
+
+async function getMoves(req, res) {
+    try {
+        let chessGame = await ChessGame.resumeOrStart(
+            req.connection.remoteAddress
+        );
+        res.send(chessGame.getMoveHistory());
+    } catch (err) {
+        console.log(`Error in getMoves:\n${err.stack}`);
+        res.send('error');
+    }
+}
+
+async function resign(req, res) {
+    try {
+        let chessGame = await ChessGame.resumeOrStart(
+            req.connection.remoteAddress
+        );
+        await chessGame.resign();
+        res.send('OK');
+    } catch (err) {
+        console.log(`Error in resign:\n${err.stack}`);
         res.send('error');
     }
 }
 
 exports.init = init;
-exports.play = play;
+exports.move = move;
+exports.makeEngineMove = makeEngineMove;
 exports.getMoves = getMoves;
 exports.resign = resign;
