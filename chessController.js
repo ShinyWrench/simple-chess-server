@@ -12,6 +12,17 @@ function init() {
     ChessGame.initEngine();
 }
 
+async function getMoves(req, res) {
+    let chessGame = await ChessGame.resumeOrStart(req.connection.remoteAddress);
+    res.send(chessGame.getMoveHistory());
+}
+
+async function resign(req, res) {
+    let chessGame = await ChessGame.resumeOrStart(req.connection.remoteAddress);
+    await chessGame.resign();
+    res.send('OK');
+}
+
 async function play(req, res) {
     try {
         let chessGame = await ChessGame.resumeOrStart(
@@ -20,15 +31,8 @@ async function play(req, res) {
 
         let clientMove = req.params.move;
         switch (clientMove) {
-            case 'resign':
-                await chessGame.resign();
-                res.send('OK');
-                return;
             case 'go':
                 break;
-            case 'moves':
-                res.send(chessGame.getMoveHistory());
-                return;
             default:
                 if ((await chessGame.validateMove(clientMove)) === false) {
                     res.send('error');
@@ -59,3 +63,5 @@ async function play(req, res) {
 
 exports.init = init;
 exports.play = play;
+exports.getMoves = getMoves;
+exports.resign = resign;
