@@ -8,7 +8,6 @@ function getMovesFromCurrentGame(remoteIP) {
     }
     let gameRecords = JSON.parse(fs.readFileSync(GAME_RECORDS_JSON_PATH));
     if (!(remoteIP in gameRecords)) {
-        console.log(`No game found for ${remoteIP}`);
         return null;
     } else {
         return (clientGames = gameRecords[remoteIP].currentGame.moves);
@@ -27,7 +26,6 @@ function addMove(remoteIP, move) {
         gameRecords[remoteIP].currentGame.moves += ` ${move}`;
     }
     fs.writeFileSync(GAME_RECORDS_JSON_PATH, JSON.stringify(gameRecords));
-    console.log(`Save game ${JSON.stringify(gameRecords[remoteIP])}`);
 }
 
 function closeCurrentGame(remoteIP, endOfGameState) {
