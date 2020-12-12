@@ -14,8 +14,15 @@ function init() {
 }
 
 async function loadGame(req, res, next) {
-    req.chessGame = await ChessGame.resumeOrStart(req.connection.remoteAddress);
-    next();
+    try {
+        req.chessGame = await ChessGame.resumeOrStart(
+            req.connection.remoteAddress
+        );
+        next();
+    } catch (err) {
+        console.log(`Error in loadGame:\n${err.stack ? err.stack : err}`);
+        res.send('error');
+    }
 }
 
 async function move(req, res) {
@@ -33,7 +40,7 @@ async function move(req, res) {
         }
         await makeEngineMove(req, res);
     } catch (err) {
-        console.log(`Error in move:\n${err.stack}`);
+        console.log(`Error in move:\n${err.stack ? err.stack : err}`);
         res.send('error');
     }
 }
@@ -49,7 +56,7 @@ async function makeEngineMove(req, res) {
             return;
         }
     } catch (err) {
-        console.log(`Error in makeEngineMove:\n${err.stack}`);
+        console.log(`Error in makeEngineMove:\n${err.stack ? err.stack : err}`);
         res.send('error');
     }
 }
@@ -58,7 +65,7 @@ async function getMoves(req, res) {
     try {
         res.send(req.chessGame.getMoveHistory());
     } catch (err) {
-        console.log(`Error in getMoves:\n${err.stack}`);
+        console.log(`Error in getMoves:\n${err.stack ? err.stack : err}`);
         res.send('error');
     }
 }
@@ -68,7 +75,7 @@ async function resign(req, res) {
         await req.chessGame.resign();
         res.send('OK');
     } catch (err) {
-        console.log(`Error in resign:\n${err.stack}`);
+        console.log(`Error in resign:\n${err.stack ? err.stack : err}`);
         res.send('error');
     }
 }

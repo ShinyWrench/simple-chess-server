@@ -90,7 +90,9 @@ class ChessGame {
                 this.positionReporter.move(move, { sloppy: true });
             });
         } else {
-            throw `updatePositionReporter(${update}):\nInvalid key(s) in update`;
+            throw `updatePositionReporter(${JSON.stringify(
+                update
+            )}):\nInvalid key(s) in update`;
         }
     }
 
