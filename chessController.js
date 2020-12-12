@@ -30,15 +30,7 @@ async function move(req, res) {
                 return;
             }
         }
-
-        let engineMove = await req.chessGame.makeEngineMove();
-        if (req.chessGame.isGameOver()) {
-            res.send(`${engineMove},${req.chessGame.getEndOfGameState()}`);
-            return;
-        } else {
-            res.send(engineMove);
-            return;
-        }
+        await makeEngineMove(req, res);
     } catch (err) {
         console.log(`Error in move:\n${err.stack}`);
         res.send('error');
