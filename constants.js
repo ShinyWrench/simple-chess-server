@@ -2,6 +2,9 @@ module.exports = {
     commands: {
         setMoves: 'position startpos moves',
         display: 'd',
-        requestMove: 'go depth 16',
+        requestMove: 'go depth ',
+    },
+    engine: {
+        defaultDepth: 9,
     },
 };

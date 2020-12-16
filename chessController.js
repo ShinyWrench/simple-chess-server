@@ -3,10 +3,10 @@ const ChessGame = require('./ChessGame');
 // TODO:
 //       set up default 'keepAlive' arg in ChessGame move & resign methods
 //           controls whether 'positionReporter' is updated, engine moves are updated
-//       allow client to change difficulty level
-//       allow client to get a list of commands ('/help')
 //       '/board' or '/showboard' route
 //           show board or toggle whether to include in every move response
+//       allow client to change difficulty level
+//       allow client to get a list of commands ('/help')
 //       replace CSV/JSON with actual DB (Mongo?)
 
 function init() {
@@ -15,7 +15,7 @@ function init() {
 
 async function loadGame(req, res, next) {
     try {
-        req.chessGame = await ChessGame.resumeOrStart(
+        req.chessGame = await ChessGame.resumeOrStartOnline(
             req.connection.remoteAddress
         );
         next();
