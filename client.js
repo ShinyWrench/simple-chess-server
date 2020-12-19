@@ -4,10 +4,6 @@ const fetch = require('node-fetch');
 const { engine } = require('./constants');
 
 // TODO:
-//           CODE FASTER -- LIVE DANGEROUSLY (for now -- learn
-//               to & write a tester after you get to the S3 fun)
-//           Make move request with optional query params
-//              .../e2e4&depth=7&error=...
 //           Identify players in storage record with
 //               name(in addition to ip address)-- use compound key?
 //           Control whether to do console.log calls with a ChessGame
@@ -33,10 +29,15 @@ async function playOneGame() {
 
     // Play a game against the server
     while (true) {
-        let engineMove = await chessGame.makeEngineMove(7);
+        let engineMove = await chessGame.makeEngineMove({
+            depth: 8,
+            skill: 20,
+        });
         console.log(`My move: ${engineMove}`);
         let response = await (
-            await fetch(`${serverAddress}/${engineMove}?jsonresponse=true`)
+            await fetch(
+                `${serverAddress}/${engineMove}?jsonresponse=true&skill=18&depth=6`
+            )
         ).json();
         if ('move' in response) {
             console.log(`Server move: ${response.move}`);
@@ -56,5 +57,7 @@ async function playOneGame() {
 playOneGame()
     .then(() => {})
     .catch((err) => {
-        console.log(`Error in calling playOneGame:\n${err}`);
+        console.log(
+            `Error in calling playOneGame:\n${err.stack ? err.stack : err}`
+        );
     });

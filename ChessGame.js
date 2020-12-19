@@ -91,10 +91,14 @@ class ChessGame {
         await engineCommand(constants.commands.display, null);
     }
 
-    async makeEngineMove(depth = constants.engine.defaultDepth) {
+    async makeEngineMove(params = {}) {
+        await engineCommand(
+            constants.commands.setSkillLevel,
+            'skill' in params ? params.skill : constants.engine.defaultSkill
+        );
         let engineMove = await engineCommand(
             constants.commands.requestMove,
-            depth
+            'depth' in params ? params.depth : constants.engine.defaultDepth
         );
         await this.move(engineMove);
         return engineMove;
@@ -148,7 +152,9 @@ function engineCommand(command, parameter) {
                 console.log(line);
             }
             switch (command) {
+                // break after cases with no engine console output
                 case constants.commands.setMoves:
+                case constants.commands.setSkillLevel:
                     break;
                 case constants.commands.display:
                     if (line.slice(0, 17) === 'Legal uci moves: ') {
@@ -179,7 +185,11 @@ function engineCommand(command, parameter) {
             console.log(`[sending \'${command}\']`);
             engine.postMessage(`${command}`);
         }
-        if (command === constants.commands.setMoves) {
+        // resolve right away if we don't have expected output to trigger it
+        if (
+            command === constants.commands.setMoves ||
+            command === constants.commands.setSkillLevel
+        ) {
             resolve();
         }
     });

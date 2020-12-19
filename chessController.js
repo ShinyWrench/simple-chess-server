@@ -1,7 +1,6 @@
 const ChessGame = require('./ChessGame');
-
+const { validationResult } = require('express-validator');
 // TODO:
-//       allow client to change difficulty level
 //       allow client to get a list of commands ('/help')
 //       '/board' or '/showboard' route
 //           show board or toggle whether to include in every move response
@@ -41,6 +40,14 @@ async function loadGame(req, res, next) {
 
 async function move(req, res) {
     try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            console.log(
+                `Client sent bad parameters:\n${JSON.stringify(errors.array())}`
+            );
+            respond(req, res, { error: 'invalid parameters' });
+            return;
+        }
         let clientMove = req.params.move;
         if ((await req.chessGame.validateMove(clientMove)) === false) {
             respond(req, res, { error: 'invalid move' });
@@ -63,7 +70,22 @@ async function move(req, res) {
 
 async function makeEngineMove(req, res) {
     try {
-        let engineMove = await req.chessGame.makeEngineMove();
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            console.log(
+                `Client sent bad parameters:\n${JSON.stringify(errors.array())}`
+            );
+            respond(req, res, { error: 'invalid parameters' });
+            return;
+        }
+        let params = {};
+        if ('depth' in req.query) {
+            params.depth = req.query.depth;
+        }
+        if ('skill' in req.query) {
+            params.skill = req.query.skill;
+        }
+        let engineMove = await req.chessGame.makeEngineMove(params);
         if (req.chessGame.isGameOver()) {
             respond(req, res, {
                 move: engineMove,
