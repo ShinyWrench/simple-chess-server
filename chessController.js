@@ -1,5 +1,6 @@
 const ChessGame = require('./ChessGame');
 const { validationResult } = require('express-validator');
+const { Chess } = require('chess.js');
 // TODO:
 //       allow client to get a list of commands ('/help')
 //       '/board' or '/showboard' route
@@ -14,10 +15,12 @@ function respond(req, res, message) {
     if ('jsonresponse' in req.query && req.query.jsonresponse === 'true') {
         res.json(message);
     } else {
+        // TODO: replace all this
         let output = '';
         output = `${output}${message.error ? message.error + ',' : ''}`;
         output = `${output}${message.move ? message.move + ',' : ''}`;
         output = `${output}${message.moves ? message.moves + ',' : ''}`;
+        output = `${output}${message.isInGame ? message.isInGame + ',' : ''}`;
         output = `${output}${message.status ? message.status + ',' : ''}`;
         if (output.length > 0) {
             output = output.slice(0, -1);
@@ -26,10 +29,12 @@ function respond(req, res, message) {
     }
 }
 
-async function loadGame(req, res, next) {
+async function loadPlayer(req, res, next) {
     try {
-        req.chessGame = await ChessGame.resumeOrStartOnline(
-            req.connection.remoteAddress
+        // TODO: add 'await' if Player.loadPlayer() is async
+        req.player = Player.getPlayer(
+            req.connection.remoteAddress,
+            'player' in req.query ? req.query.player : null
         );
         next();
     } catch (err) {
@@ -38,8 +43,9 @@ async function loadGame(req, res, next) {
     }
 }
 
-async function move(req, res) {
+async function startGame(req, res) {
     try {
+        // Validate GET route parameters
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             console.log(
@@ -48,72 +54,151 @@ async function move(req, res) {
             respond(req, res, { error: 'invalid parameters' });
             return;
         }
+
+        // Don't allow start-game if already in game
+        if (req.player.isInGame() === true) {
+            console.log(
+                `Player '${req.player.name}' at ${req.player.ipAddress} tried to start a new game, but they are already in a game`
+            );
+            respond(req, res, { error: 'error' });
+            return;
+        }
+
+        // Tell the player object it's in a new game
+        let color;
+        if ('color' in req.query) {
+            color = req.query.color;
+        } else {
+            color = 'white';
+        }
+        req.player.createNewGame(color);
+
+        if (color === 'white') {
+            // Respond with 'OK' if white
+            respond(req, res, { message: 'OK' });
+        } else if (color === 'black') {
+            // Otherwise, do the engine's move and respond with it
+            let chessGame = new ChessGame({
+                color: 'black',
+                engineSkill: req.player.getOpponentEngineSkill(),
+                engineDepth: req.player.getOpponentEngineDepth(),
+            });
+            respond(req, res, { move: await chessGame.makeEngineMove() });
+        }
+    } catch (err) {
+        console.log(`Error in startNewGame:\n${err.stack ? err.stack : err}`);
+        respond(req, res, { error: 'error' });
+    }
+}
+
+async function config(req, res) {
+    try {
+        // Validate GET route parameters
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            console.log(
+                `Client sent bad parameters:\n${JSON.stringify(errors.array())}`
+            );
+            respond(req, res, { error: 'invalid parameters' });
+            return;
+        }
+
+        // Don't allow set-config if already in game
+        if (req.player.isInGame() === true) {
+            console.log(
+                `Player ${name} at ${req.player.ipAddress} tried to set config, but they are currently in a game`
+            );
+            respond(req, res, { error: 'error' });
+            return;
+        }
+
+        // Set any config found in query params
+        if ('skill' in req.query) {
+            req.player.setOpponentEngineSkill(req.query.skill);
+        }
+        if ('depth' in req.query) {
+            req.player.setOpponentEngineDepth(req.query.depth);
+        }
+    } catch (err) {
+        console.log(`Error in config:\n${err.stack ? err.stack : err}`);
+        respond(req, res, { error: 'error' });
+    }
+}
+
+async function move(req, res) {
+    try {
         let clientMove = req.params.move;
-        if ((await req.chessGame.validateMove(clientMove)) === false) {
+
+        // Don't allow move if not in game
+        if (req.player.isInGame() === false) {
+            console.log(
+                `Player ${req.player.name} at ${req.player.ipAddress} tried to move '${clientMove}', but they are not currently in a game`
+            );
+            respond(req, res, { error: 'error' });
+            return;
+        }
+
+        // Get the ChessGame instance for the player's current game
+        let chessGame = req.player.getChessGameFromCurrentGame();
+
+        // Validate the move
+        // TODO: replace with sync Chess().moves() legal moves lister
+        if ((await chessGame.validateMove(clientMove)) === false) {
             respond(req, res, { error: 'invalid move' });
             return;
-        } else {
-            await req.chessGame.move(clientMove);
-            if (req.chessGame.isGameOver()) {
-                respond(req, res, {
-                    status: req.chessGame.getEndOfGameState(),
-                });
-                return;
-            }
         }
-        await makeEngineMove(req, res);
+
+        // Do the move
+        chessGame.move(clientMove);
+
+        // Respond if the game is over
+        if (chessGame.isGameOver()) {
+            req.player.updateCurrentGame({
+                move: clientMove,
+                state: chessGame.getEndOfGameState(),
+            });
+            respond(req, res, {
+                status: chessGame.getEndOfGameState(),
+            });
+            return;
+        }
+
+        // Do the engine's move
+        let engineMove = await chessGame.makeEngineMove();
+
+        // Respond
+        if (chessGame.isGameOver()) {
+            req.player.updateCurrentGame({
+                moves: [clientMove, engineMove],
+                state: chessGame.getEndOfGameState(),
+            });
+            respond(req, res, {
+                move: engineMove,
+                status: chessGame.getEndOfGameState(),
+            });
+            return;
+        } else {
+            req.player.updateCurrentGame({ moves: [clientMove, engineMove] });
+            respond(req, res, { move: engineMove });
+            return;
+        }
     } catch (err) {
         console.log(`Error in move:\n${err.stack ? err.stack : err}`);
         respond(req, res, { error: 'error' });
     }
 }
 
-async function makeEngineMove(req, res) {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            console.log(
-                `Client sent bad parameters:\n${JSON.stringify(errors.array())}`
-            );
-            respond(req, res, { error: 'invalid parameters' });
-            return;
-        }
-        let params = {};
-        if ('depth' in req.query) {
-            params.depth = req.query.depth;
-        }
-        if ('skill' in req.query) {
-            params.skill = req.query.skill;
-        }
-        let engineMove = await req.chessGame.makeEngineMove(params);
-        if (req.chessGame.isGameOver()) {
-            respond(req, res, {
-                move: engineMove,
-                status: req.chessGame.getEndOfGameState(),
-            });
-            return;
-        } else {
-            respond(req, res, { move: engineMove });
-            return;
-        }
-    } catch (err) {
-        console.log(`Error in makeEngineMove:\n${err.stack ? err.stack : err}`);
-        respond(req, res, { error: 'error' });
-    }
-}
-
-async function getMoves(req, res) {
-    try {
-        respond(req, res, { moves: req.chessGame.getMoveHistory() });
-    } catch (err) {
-        console.log(`Error in getMoves:\n${err.stack ? err.stack : err}`);
-        respond(req, res, { error: 'error' });
-    }
-}
-
 async function resign(req, res) {
     try {
-        await req.chessGame.resign();
+        // Don't allow resign if not in game
+        if (req.player.isInGame() === false) {
+            console.log(
+                `Player ${name} at ${req.player.ipAddress} tried to resign', but they are not currently in a game`
+            );
+            respond(req, res, { error: 'error' });
+            return;
+        }
+        await req.player.resignCurrentGame();
         respond(req, res, { state: 'OK' });
     } catch (err) {
         console.log(`Error in resign:\n${err.stack ? err.stack : err}`);
@@ -121,9 +206,30 @@ async function resign(req, res) {
     }
 }
 
+async function getStatus(req, res) {
+    try {
+        let status = {
+            opponentEngineSkill: req.player.getOpponentEngineSkill(),
+            opponentEngineDepth: req.player.getOpponentEngineDepth(),
+            isInGame: req.player.isInGame(),
+        };
+        if (status.isInGame === true) {
+            // TODO: fix this when you figure out ChessGame and color
+            let chessGame = req.player.getChessGameFromCurrentGame();
+            status.color = chessGame.getPlayerGameColor();
+            status.moves = chessGame.getMoves();
+        }
+        respond(req, res, status);
+    } catch (err) {
+        console.log(`Error in getStatus:\n${err.stack ? err.stack : err}`);
+        respond(req, res, { error: 'error' });
+    }
+}
+
 exports.init = init;
-exports.loadGame = loadGame;
-exports.move = move;
-exports.makeEngineMove = makeEngineMove;
-exports.getMoves = getMoves;
+exports.loadPlayer = loadPlayer;
+exports.startGame = startGame;
+exports.config = config;
 exports.resign = resign;
+exports.getStatus = getStatus;
+exports.move = move;

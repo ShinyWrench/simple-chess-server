@@ -11,46 +11,19 @@ class ChessGame {
         engine.onmessage = (line) => {};
     }
 
-    static async resumeOrStartOnline(ipAddress) {
-        try {
-            let moves = gameStorage.getMovesFromCurrentGame(ipAddress);
-            if (moves == null) {
-                moves = '';
-            }
-            let chessGame = new ChessGame({
-                ipAddress: ipAddress,
-                useStorage: true,
-                moveHistory: moves,
-            });
-            await engineCommand(
-                constants.commands.setMoves,
-                chessGame.moveHistory
-            );
-            return chessGame;
-        } catch (err) {
-            throw err;
-        }
-    }
-
-    static async startNewLocalGame() {
-        try {
-            let chessGame = new ChessGame();
-            await engineCommand(
-                constants.commands.setMoves,
-                chessGame.moveHistory
-            );
-            return chessGame;
-        } catch (err) {
-            throw err;
-        }
-    }
-
     constructor(params = {}) {
-        this.ipAddress = 'ipAddress' in params ? params.ipAddress : null;
-        this.useStorage = 'useStorage' in params ? params.useStorage : false;
-        this.moveHistory = 'moveHistory' in params ? params.moveHistory : '';
+        this.moveHistory = 'moves' in params ? params.moves : '';
+        this.engineSkill =
+            'engineSkill' in params
+                ? params.engineSkill
+                : constants.engine.defaultSkill;
+        this.engineDepth =
+            'engineDepth' in params
+                ? params.engineDepth
+                : constants.engine.defaultDepth;
         this.positionReporter = new Chess();
         this.updatePositionReporter({ moves: this.moveHistory });
+        this.toMove = this.positionReporter.turn() === 'w' ? 'white' : 'black';
     }
 
     getMoveHistory() {
@@ -65,42 +38,20 @@ class ChessGame {
         );
     }
 
-    async resign() {
-        if (this.useStorage === true) {
-            gameStorage.closeCurrentGame(this.ipAddress, 'resign');
-        }
-        this.moveHistory = '';
-        this.positionReporter = new Chess();
-        await engineCommand(constants.commands.setMoves, '');
-        await engineCommand(constants.commands.display, null);
-    }
-
-    async move(move) {
+    move(move) {
         this.moveHistory += ` ${move}`;
         this.updatePositionReporter({ move: move });
-        if (this.useStorage === true) {
-            gameStorage.addMove(this.ipAddress, move);
-            if (this.isGameOver()) {
-                gameStorage.closeCurrentGame(
-                    this.ipAddress,
-                    this.getEndOfGameState()
-                );
-            }
-        }
-        await engineCommand(constants.commands.setMoves, this.moveHistory);
-        await engineCommand(constants.commands.display, null);
+        this.toMove = this.positionReporter.turn() === 'w' ? 'white' : 'black';
     }
 
-    async makeEngineMove(params = {}) {
-        await engineCommand(
-            constants.commands.setSkillLevel,
-            'skill' in params ? params.skill : constants.engine.defaultSkill
-        );
+    async makeEngineMove() {
+        await engineCommand(constants.commands.setMoves, chessGame.moveHistory);
+        await engineCommand(constants.commands.setSkillLevel, this.engineSkill);
         let engineMove = await engineCommand(
             constants.commands.requestMove,
-            'depth' in params ? params.depth : constants.engine.defaultDepth
+            this.engineDepth
         );
-        await this.move(engineMove);
+        this.move(engineMove);
         return engineMove;
     }
 

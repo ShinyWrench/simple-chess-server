@@ -7,15 +7,13 @@ chessController.init();
 const app = express();
 const port = 3000;
 
-app.use(chessController.loadGame);
+app.use(chessController.loadPlayer);
 
 // Start a new game
 app.get(
     '/start',
     [query('player').optional()],
-    [query('color').optional()],
-    [query('depth').optional()],
-    [query('skill').optional()],
+    [query('color').optional().isIn(['white', 'black'])],
     chessController.startGame
 );
 
@@ -24,8 +22,8 @@ app.get(
     '/config',
     [
         [query('player').optional()],
-        query('depth').optional().isInt(),
-        query('skill').optional().isInt(),
+        [query('skill').optional().isInt()],
+        [query('depth').optional().isInt()],
     ],
     chessController.config
 );
