@@ -1,6 +1,5 @@
 const stockfish = require('stockfish');
 const engine = stockfish();
-const gameStorage = require('./gameStorage');
 const constants = require('./constants');
 
 // https://github.com/jhlywa/chess.js

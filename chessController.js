@@ -1,6 +1,6 @@
 const ChessGame = require('./ChessGame');
+const Player = require('./Player');
 const { validationResult } = require('express-validator');
-const { Chess } = require('chess.js');
 // TODO:
 //       allow client to get a list of commands ('/help')
 //       '/board' or '/showboard' route
@@ -71,10 +71,9 @@ async function startGame(req, res) {
         } else {
             color = 'white';
         }
-        req.player.createNewGame(color);
-
         if (color === 'white') {
             // Respond with 'OK' if white
+            req.player.createNewGame(color);
             respond(req, res, { message: 'OK' });
         } else if (color === 'black') {
             // Otherwise, do the engine's move and respond with it
@@ -83,7 +82,9 @@ async function startGame(req, res) {
                 engineSkill: req.player.getOpponentEngineSkill(),
                 engineDepth: req.player.getOpponentEngineDepth(),
             });
-            respond(req, res, { move: await chessGame.makeEngineMove() });
+            let engineMove = await chessGame.makeEngineMove();
+            req.player.createNewGame(color, engineMove);
+            respond(req, res, { move: engineMove });
         }
     } catch (err) {
         console.log(`Error in startNewGame:\n${err.stack ? err.stack : err}`);
@@ -139,7 +140,7 @@ async function move(req, res) {
         }
 
         // Get the ChessGame instance for the player's current game
-        let chessGame = req.player.getChessGameFromCurrentGame();
+        let chessGame = ChessGame(req.player.getCurrentChessGameParams());
 
         // Validate the move
         // TODO: replace with sync Chess().moves() legal moves lister
@@ -214,9 +215,8 @@ async function getStatus(req, res) {
             isInGame: req.player.isInGame(),
         };
         if (status.isInGame === true) {
-            // TODO: fix this when you figure out ChessGame and color
-            let chessGame = req.player.getChessGameFromCurrentGame();
-            status.color = chessGame.getPlayerGameColor();
+            status.color = req.player.getCurrentGameColor();
+            let chessGame = ChessGame(req.player.getCurrentChessGameParams());
             status.moves = chessGame.getMoves();
         }
         respond(req, res, status);

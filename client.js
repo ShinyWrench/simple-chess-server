@@ -1,7 +1,5 @@
-const ChessGame = require('./ChessGame');
-ChessGame.initEngine();
 const fetch = require('node-fetch');
-const { engine } = require('./constants');
+const ChessGame = require('./ChessGame');
 
 // TODO:
 //           Have ChessGame keep track of player names and black and white
@@ -16,6 +14,8 @@ const { engine } = require('./constants');
 //           Record total piece value differential for each side when game ends (+n or -n)
 // TODO: (after all of the above)
 //           Run multiple servers, hit with one client
+
+ChessGame.initEngine();
 
 const serverAddress = 'http://localhost:3000';
 
