@@ -15,13 +15,10 @@ function respond(req, res, message) {
     if ('jsonresponse' in req.query && req.query.jsonresponse === 'true') {
         res.json(message);
     } else {
-        // TODO: replace all this
         let output = '';
-        output = `${output}${message.error ? message.error + ',' : ''}`;
-        output = `${output}${message.move ? message.move + ',' : ''}`;
-        output = `${output}${message.moves ? message.moves + ',' : ''}`;
-        output = `${output}${message.isInGame ? message.isInGame + ',' : ''}`;
-        output = `${output}${message.status ? message.status + ',' : ''}`;
+        Object.keys(message).forEach((key) => {
+            output += `${message[key]},`;
+        });
         if (output.length > 0) {
             output = output.slice(0, -1);
         }
@@ -31,7 +28,6 @@ function respond(req, res, message) {
 
 async function loadPlayer(req, res, next) {
     try {
-        // TODO: add 'await' if Player.loadPlayer() is async
         req.player = Player.getPlayer(
             req.connection.remoteAddress,
             'player' in req.query ? req.query.player : null
@@ -75,6 +71,7 @@ async function startGame(req, res) {
             // Respond with 'OK' if white
             req.player.createNewGame(color);
             respond(req, res, { message: 'OK' });
+            return;
         } else if (color === 'black') {
             // Otherwise, do the engine's move and respond with it
             let chessGame = new ChessGame({
@@ -85,6 +82,7 @@ async function startGame(req, res) {
             let engineMove = await chessGame.makeEngineMove();
             req.player.createNewGame(color, engineMove);
             respond(req, res, { move: engineMove });
+            return;
         }
     } catch (err) {
         console.log(`Error in startNewGame:\n${err.stack ? err.stack : err}`);
@@ -107,7 +105,7 @@ async function config(req, res) {
         // Don't allow set-config if already in game
         if (req.player.isInGame() === true) {
             console.log(
-                `Player ${name} at ${req.player.ipAddress} tried to set config, but they are currently in a game`
+                `Player ${req.player.name} at ${req.player.ipAddress} tried to set config, but they are currently in a game`
             );
             respond(req, res, { error: 'error' });
             return;
@@ -140,7 +138,7 @@ async function move(req, res) {
         }
 
         // Get the ChessGame instance for the player's current game
-        let chessGame = ChessGame(req.player.getCurrentChessGameParams());
+        let chessGame = new ChessGame(req.player.getCurrentChessGameParams());
 
         // Validate the move
         // TODO: replace with sync Chess().moves() legal moves lister
@@ -155,7 +153,7 @@ async function move(req, res) {
         // Respond if the game is over
         if (chessGame.isGameOver()) {
             req.player.updateCurrentGame({
-                move: clientMove,
+                moves: [clientMove],
                 state: chessGame.getEndOfGameState(),
             });
             respond(req, res, {
@@ -194,13 +192,13 @@ async function resign(req, res) {
         // Don't allow resign if not in game
         if (req.player.isInGame() === false) {
             console.log(
-                `Player ${name} at ${req.player.ipAddress} tried to resign', but they are not currently in a game`
+                `Player ${req.player.name} at ${req.player.ipAddress} tried to resign', but they are not currently in a game`
             );
             respond(req, res, { error: 'error' });
             return;
         }
         await req.player.resignCurrentGame();
-        respond(req, res, { state: 'OK' });
+        respond(req, res, { status: 'OK' });
     } catch (err) {
         console.log(`Error in resign:\n${err.stack ? err.stack : err}`);
         respond(req, res, { error: 'error' });
@@ -209,17 +207,7 @@ async function resign(req, res) {
 
 async function getStatus(req, res) {
     try {
-        let status = {
-            opponentEngineSkill: req.player.getOpponentEngineSkill(),
-            opponentEngineDepth: req.player.getOpponentEngineDepth(),
-            isInGame: req.player.isInGame(),
-        };
-        if (status.isInGame === true) {
-            status.color = req.player.getCurrentGameColor();
-            let chessGame = ChessGame(req.player.getCurrentChessGameParams());
-            status.moves = chessGame.getMoves();
-        }
-        respond(req, res, status);
+        respond(req, res, req.player.getProperties());
     } catch (err) {
         console.log(`Error in getStatus:\n${err.stack ? err.stack : err}`);
         respond(req, res, { error: 'error' });

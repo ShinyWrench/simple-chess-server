@@ -1,18 +1,51 @@
 const constants = require('./constants');
+const fs = require('fs');
 
 class Player {
     static GAME_RECORDS_JSON_PATH = './gameRecords.json';
+    static DEFAULT_NAME = '';
+
+    static getUniqueKey(ipAddress, name) {
+        return `${ipAddress} ${name}`;
+    }
+
+    static loadGameRecords() {
+        if (!fs.existsSync(Player.GAME_RECORDS_JSON_PATH)) {
+            fs.writeFileSync(Player.GAME_RECORDS_JSON_PATH, JSON.stringify({}));
+        }
+        return JSON.parse(fs.readFileSync(Player.GAME_RECORDS_JSON_PATH));
+    }
+
+    static saveGameRecords(gameRecords) {
+        fs.writeFileSync(
+            Player.GAME_RECORDS_JSON_PATH,
+            JSON.stringify(gameRecords)
+        );
+    }
 
     // Retrieve existing player or create new player (local and storage)
-    static getPlayer(ipAddress, name) {
-        // TODO: Get player from storage by ip and optional name
-        //       (grab code from gameStorage.js)
+    static getPlayer(ipAddress, name = Player.DEFAULT_NAME) {
+        let gameRecords = Player.loadGameRecords();
+        let uniqueKey = this.getUniqueKey(ipAddress, name);
+        if (!(uniqueKey in gameRecords)) {
+            let player = new Player({ ipAddress: ipAddress, name: name });
+            player.save();
+            return player;
+        } else {
+            return new Player(gameRecords[uniqueKey]);
+        }
+    }
+
+    static updatePlayerRecord(ipAddress, name, storageObject) {
+        let gameRecords = Player.loadGameRecords();
+        gameRecords[Player.getUniqueKey(ipAddress, name)] = storageObject;
+        Player.saveGameRecords(gameRecords);
     }
 
     // Create new player (local)
     constructor(params) {
         this.ipAddress = params.ipAddress;
-        this.name = 'name' in params ? params.name : '';
+        this.name = 'name' in params ? params.name : Player.DEFAULT_NAME;
         this.currentGame = 'currentGame' in params ? params.currentGame : null;
         this.opponentEngineSkill =
             'opponentEngineSkill' in params
@@ -25,18 +58,17 @@ class Player {
     }
 
     save() {
-        // let records = JSON.stringify({
-        //     for(key in this) {
-        //     }
-        // })
-        // TODO: Save member variables to local storage
-        //       (grab code from gameStorage.js)
+        let storageObject = {};
+        Object.keys(this).forEach((key) => {
+            storageObject[key] = this[key];
+        });
+        Player.updatePlayerRecord(this.ipAddress, this.name, storageObject);
     }
 
     createNewGame(color, firstWhiteMove = null) {
         this.currentGame = {
             color: color,
-            moves: firstWhiteMove ? firstWhiteMove : '',
+            moves: firstWhiteMove ? ` ${firstWhiteMove}` : '',
             state: 'playing',
             engineDepth: this.opponentEngineDepth,
             engineSkill: this.opponentEngineSkill,
@@ -45,7 +77,9 @@ class Player {
     }
 
     isInGame() {
-        return this.isInGame;
+        return (
+            this.currentGame !== null && this.currentGame.state === 'playing'
+        );
     }
 
     getCurrentGameColor() {
@@ -53,8 +87,14 @@ class Player {
     }
 
     updateCurrentGame(params) {
-        // TODO
-        // Allow partial or complete set of params to be set with each call
+        if ('moves' in params) {
+            params.moves.forEach((move) => {
+                this.currentGame.moves += ` ${move}`;
+            });
+        }
+        if ('state' in params) {
+            this.currentGame.state = params.state;
+        }
         this.save();
     }
 
@@ -83,6 +123,14 @@ class Player {
     setOpponentEngineDepth(depth) {
         this.opponentEngineDepth = depth;
         this.save();
+    }
+
+    getProperties() {
+        return JSON.parse(JSON.stringify(this));
+    }
+
+    print() {
+        return JSON.stringify(this);
     }
 }
 

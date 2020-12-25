@@ -30,6 +30,7 @@ class ChessGame {
     }
 
     async validateMove(move) {
+        await engineCommand(constants.commands.setMoves, this.moveHistory);
         let legalMoves = await engineCommand(constants.commands.display, null);
         return (
             (move.length === 4 || move.length === 5) &&
@@ -44,7 +45,7 @@ class ChessGame {
     }
 
     async makeEngineMove() {
-        await engineCommand(constants.commands.setMoves, chessGame.moveHistory);
+        await engineCommand(constants.commands.setMoves, this.moveHistory);
         await engineCommand(constants.commands.setSkillLevel, this.engineSkill);
         let engineMove = await engineCommand(
             constants.commands.requestMove,
