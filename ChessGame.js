@@ -29,9 +29,11 @@ class ChessGame {
         return this.moveHistory;
     }
 
-    async validateMove(move) {
-        await engineCommand(constants.commands.setMoves, this.moveHistory);
-        let legalMoves = await engineCommand(constants.commands.display, null);
+    validateMove(move) {
+        let legalMoves = [];
+        this.positionReporter.moves({ verbose: true }).forEach((move) => {
+            legalMoves.push(`${move.from}${move.to}`);
+        });
         return (
             (move.length === 4 || move.length === 5) &&
             legalMoves.includes(move)

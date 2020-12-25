@@ -6,7 +6,6 @@ const ChessGame = require('./ChessGame');
 //               Control whether to do console.log calls with a ChessGame
 //                   constructor object param (?)
 //           Handle end of game messages (also create single/few point(s) for S3 insert)
-//           Other TODOs in project (esp. validate-move)
 //           See if there are other ways to speed up gameplay
 //           Record total piece value differential for each side when game ends (+n or -n)
 //           Add timestamps
