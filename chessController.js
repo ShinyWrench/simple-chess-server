@@ -118,6 +118,7 @@ async function config(req, res) {
         if ('depth' in req.query) {
             req.player.setOpponentEngineDepth(req.query.depth);
         }
+        respond(req, res, { status: 'OK' });
     } catch (err) {
         console.log(`Error in config:\n${err.stack ? err.stack : err}`);
         respond(req, res, { error: 'error' });

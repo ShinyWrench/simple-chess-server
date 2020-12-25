@@ -28,32 +28,34 @@ async function playOneGame() {
     let status = await (
         await fetch(`${serverAddress}/status?jsonresponse=true&player=Billy`)
     ).json();
-    if (status.inGame === 'true') {
-        await fetch(`${serverAddress}/resign`);
+    if (status.currentGame != null && status.currentGame.state === 'playing') {
+        await fetch(`${serverAddress}/resign?jsonresponse=true&player=Billy`);
     }
 
     // Set opponent engine skill and depth for player
     await fetch(
-        `${serverAddress}/config?jsonresponse=true&skill=18&depth=6&player=Billy`
+        `${serverAddress}/config?jsonresponse=true&skill=17&depth=10&player=Billy`
     );
 
     // Start a local ChessGame with my color and engine details
-    let gameParams = {
-        color: randomTrueOrFalse() === true ? 'white' : 'black',
-        skill: 20,
-        depth: 10,
-    };
-    let chessGame = await ChessGame.startNewLocalGame(gameParams);
+    let chessGame = new ChessGame({
+        engineSkill: 18,
+        engineDepth: 8,
+    });
+
+    // Pick a color at random
+    let color = randomTrueOrFalse() === true ? 'white' : 'black';
+    console.log(`color: ${color}`);
 
     // Begin the game with the server
     let response = await (
         await fetch(
-            `${serverAddress}/start?jsonresponse=true&player=Billy&color=${gameParams.color}&skill=19`
+            `${serverAddress}/start?jsonresponse=true&player=Billy&color=${color}`
         )
     ).json();
 
     // If we are black, play server's first move in the local ChessGame
-    if (gameParams.color === 'black') {
+    if (color === 'black') {
         await chessGame.move(response.move);
     }
 
