@@ -30,14 +30,26 @@ class ChessGame {
     }
 
     validateMove(move) {
-        let legalMoves = [];
-        this.positionReporter.moves({ verbose: true }).forEach((move) => {
-            legalMoves.push(`${move.from}${move.to}`);
-        });
-        return (
-            (move.length === 4 || move.length === 5) &&
-            legalMoves.includes(move)
-        );
+        // Trim promotion character
+        if (move.length === 5) {
+            move = move.slice(0, 4);
+        }
+
+        // Handle moves with improper length
+        if (move.length !== 4) {
+            return false;
+        }
+
+        // Search for the move among the legal moves
+        let legalMoves = this.positionReporter.moves({ verbose: true });
+        for (let i = 0; i < legalMoves.length; i++) {
+            if (move === `${legalMoves[i].from}${legalMoves[i].to}`) {
+                return true;
+            }
+        }
+
+        // Return false if move not found among legal moves
+        return false;
     }
 
     move(move) {
