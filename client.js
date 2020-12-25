@@ -2,18 +2,18 @@ const fetch = require('node-fetch');
 const ChessGame = require('./ChessGame');
 
 // TODO:
-//           Have ChessGame keep track of player names and black and white
-//               whoever calls ChessGame.move should provide the player name
-//                   (whether from outside the class or within another method)
-//           Also track engine skill and depth
-//           Identify players in storage record with
-//               name(in addition to ip address)-- use compound key?
-//           Control whether to do console.log calls with a ChessGame
-//               constructor object param
+//           Clean up / minimize console.logs
+//               Control whether to do console.log calls with a ChessGame
+//                   constructor object param (?)
+//           Handle end of game messages (also create single/few point(s) for S3 insert)
+//           Other TODOs in project (esp. validate-move)
 //           See if there are other ways to speed up gameplay
 //           Record total piece value differential for each side when game ends (+n or -n)
+//           Add timestamps
 // TODO: (after all of the above)
 //           Run multiple servers, hit with one client
+//           Do S3 insert
+//           Write tester(s)
 
 ChessGame.initEngine();
 

@@ -142,7 +142,7 @@ async function move(req, res) {
         let chessGame = new ChessGame(req.player.getCurrentChessGameParams());
 
         // Validate the move
-        // TODO: replace with sync Chess().moves() legal moves lister
+        // TODO: replace with sync Chess().moves() legal moves lister (probably faster)
         if ((await chessGame.validateMove(clientMove)) === false) {
             respond(req, res, { error: 'invalid move' });
             return;
