@@ -25,16 +25,14 @@ function randomTrueOrFalse() {
 async function playOneGame() {
     // Resign if in the middle of a game
     let status = await (
-        await fetch(`${serverAddress}/status?jsonresponse=true&player=Billy`)
+        await fetch(`${serverAddress}/status?player=Billy`)
     ).json();
     if (status.currentGame != null && status.currentGame.state === 'playing') {
-        await fetch(`${serverAddress}/resign?jsonresponse=true&player=Billy`);
+        await fetch(`${serverAddress}/resign?player=Billy`);
     }
 
     // Set opponent engine skill and depth for player
-    await fetch(
-        `${serverAddress}/config?jsonresponse=true&skill=17&depth=10&player=Billy`
-    );
+    await fetch(`${serverAddress}/config?skill=17&depth=10&player=Billy`);
 
     // Start a local ChessGame with my color and engine details
     let chessGame = new ChessGame({
@@ -48,9 +46,7 @@ async function playOneGame() {
 
     // Begin the game with the server
     let response = await (
-        await fetch(
-            `${serverAddress}/start?jsonresponse=true&player=Billy&color=${color}`
-        )
+        await fetch(`${serverAddress}/start?player=Billy&color=${color}`)
     ).json();
 
     // If we are black, play server's first move in the local ChessGame
@@ -63,9 +59,7 @@ async function playOneGame() {
         let engineMove = await chessGame.makeEngineMove();
         console.log(`My move: ${engineMove}`);
         let response = await (
-            await fetch(
-                `${serverAddress}/${engineMove}?jsonresponse=true&player=Billy`
-            )
+            await fetch(`${serverAddress}/${engineMove}?player=Billy`)
         ).json();
         if ('move' in response) {
             console.log(`Server move: ${response.move}`);

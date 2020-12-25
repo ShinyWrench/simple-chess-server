@@ -11,21 +11,6 @@ function init() {
     ChessGame.initEngine();
 }
 
-function respond(req, res, message) {
-    if ('jsonresponse' in req.query && req.query.jsonresponse === 'true') {
-        res.json(message);
-    } else {
-        let output = '';
-        Object.keys(message).forEach((key) => {
-            output += `${message[key]},`;
-        });
-        if (output.length > 0) {
-            output = output.slice(0, -1);
-        }
-        res.send(output);
-    }
-}
-
 async function loadPlayer(req, res, next) {
     try {
         req.player = Player.getPlayer(
@@ -35,7 +20,7 @@ async function loadPlayer(req, res, next) {
         next();
     } catch (err) {
         console.log(`Error in loadGame:\n${err.stack ? err.stack : err}`);
-        respond(req, res, { error: 'error' });
+        res.json({ error: 'error' });
     }
 }
 
@@ -47,7 +32,7 @@ async function startGame(req, res) {
             console.log(
                 `Client sent bad parameters:\n${JSON.stringify(errors.array())}`
             );
-            respond(req, res, { error: 'invalid parameters' });
+            res.json({ error: 'invalid parameters' });
             return;
         }
 
@@ -56,7 +41,7 @@ async function startGame(req, res) {
             console.log(
                 `Player '${req.player.name}' at ${req.player.ipAddress} tried to start a new game, but they are already in a game`
             );
-            respond(req, res, { error: 'error' });
+            res.json({ error: 'error' });
             return;
         }
 
@@ -70,7 +55,7 @@ async function startGame(req, res) {
         if (color === 'white') {
             // Respond with 'OK' if white
             req.player.createNewGame(color);
-            respond(req, res, { message: 'OK' });
+            res.json({ message: 'OK' });
             return;
         } else if (color === 'black') {
             // Otherwise, do the engine's move and respond with it
@@ -81,12 +66,12 @@ async function startGame(req, res) {
             });
             let engineMove = await chessGame.makeEngineMove();
             req.player.createNewGame(color, engineMove);
-            respond(req, res, { move: engineMove });
+            res.json({ move: engineMove });
             return;
         }
     } catch (err) {
         console.log(`Error in startNewGame:\n${err.stack ? err.stack : err}`);
-        respond(req, res, { error: 'error' });
+        res.json({ error: 'error' });
     }
 }
 
@@ -98,7 +83,7 @@ async function config(req, res) {
             console.log(
                 `Client sent bad parameters:\n${JSON.stringify(errors.array())}`
             );
-            respond(req, res, { error: 'invalid parameters' });
+            res.json({ error: 'invalid parameters' });
             return;
         }
 
@@ -107,7 +92,7 @@ async function config(req, res) {
             console.log(
                 `Player ${req.player.name} at ${req.player.ipAddress} tried to set config, but they are currently in a game`
             );
-            respond(req, res, { error: 'error' });
+            res.json({ error: 'error' });
             return;
         }
 
@@ -118,10 +103,10 @@ async function config(req, res) {
         if ('depth' in req.query) {
             req.player.setOpponentEngineDepth(req.query.depth);
         }
-        respond(req, res, { status: 'OK' });
+        res.json({ status: 'OK' });
     } catch (err) {
         console.log(`Error in config:\n${err.stack ? err.stack : err}`);
-        respond(req, res, { error: 'error' });
+        res.json({ error: 'error' });
     }
 }
 
@@ -134,7 +119,7 @@ async function move(req, res) {
             console.log(
                 `Player ${req.player.name} at ${req.player.ipAddress} tried to move '${clientMove}', but they are not currently in a game`
             );
-            respond(req, res, { error: 'error' });
+            res.json({ error: 'error' });
             return;
         }
 
@@ -143,7 +128,7 @@ async function move(req, res) {
 
         // Validate the move
         if (chessGame.validateMove(clientMove) === false) {
-            respond(req, res, { error: 'invalid move' });
+            res.json({ error: 'invalid move' });
             return;
         }
 
@@ -156,7 +141,7 @@ async function move(req, res) {
                 moves: [clientMove],
                 state: chessGame.getEndOfGameState(),
             });
-            respond(req, res, {
+            res.json({
                 status: chessGame.getEndOfGameState(),
             });
             return;
@@ -171,19 +156,19 @@ async function move(req, res) {
                 moves: [clientMove, engineMove],
                 state: chessGame.getEndOfGameState(),
             });
-            respond(req, res, {
+            res.json({
                 move: engineMove,
                 status: chessGame.getEndOfGameState(),
             });
             return;
         } else {
             req.player.updateCurrentGame({ moves: [clientMove, engineMove] });
-            respond(req, res, { move: engineMove });
+            res.json({ move: engineMove });
             return;
         }
     } catch (err) {
         console.log(`Error in move:\n${err.stack ? err.stack : err}`);
-        respond(req, res, { error: 'error' });
+        res.json({ error: 'error' });
     }
 }
 
@@ -194,23 +179,23 @@ async function resign(req, res) {
             console.log(
                 `Player ${req.player.name} at ${req.player.ipAddress} tried to resign', but they are not currently in a game`
             );
-            respond(req, res, { error: 'error' });
+            res.json({ error: 'error' });
             return;
         }
         await req.player.resignCurrentGame();
-        respond(req, res, { status: 'OK' });
+        res.json({ status: 'OK' });
     } catch (err) {
         console.log(`Error in resign:\n${err.stack ? err.stack : err}`);
-        respond(req, res, { error: 'error' });
+        res.json({ error: 'error' });
     }
 }
 
 async function getStatus(req, res) {
     try {
-        respond(req, res, req.player.getProperties());
+        res.json(req.player.getProperties());
     } catch (err) {
         console.log(`Error in getStatus:\n${err.stack ? err.stack : err}`);
-        respond(req, res, { error: 'error' });
+        res.json({ error: 'error' });
     }
 }
 
