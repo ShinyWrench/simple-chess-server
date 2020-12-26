@@ -23,7 +23,7 @@ class ChessGame {
                 : constants.engine.defaultDepth;
         this.positionReporter = new Chess();
         this.updatePositionReporter({ moves: this.moveHistory });
-        this.numNextMove = 1;
+        this.numNextMove = 1 + Math.floor(this.moveHistory.length / 2);
         this.toMove = this.positionReporter.turn() === 'w' ? 'white' : 'black';
         this.debugEngine = 'debugEngine' in params ? params.debugEngine : false;
     }
@@ -79,16 +79,6 @@ class ChessGame {
             time_ms: new Date().getTime(),
             // TODO: any other info here?
 
-            // TODO: Finish switching from string to array
-            //           Look at params in 'new ChessGame()' calls
-            //           Look at anything else in the whole project
-            //               that touches moves
-            //           Search for "` "
-            //           Search for "move" (?)
-            // TODO: Fix numNextMove initialization in constructor
-            //       Use moveHistory.length in other spot(s) with numNextMove
-            // TODO: Test everything that the above could affect
-            // TODO: Test debugEngine
             // TODO: Finish log stuff (start and end of game)
             // TODO: move on to client.js TODOs
         };
