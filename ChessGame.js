@@ -32,6 +32,14 @@ class ChessGame {
         return this.moveHistory;
     }
 
+    getLastMoveInfo() {
+        if (this.moveHistory.length > 0) {
+            return this.moveHistory[this.moveHistory.length - 1];
+        } else {
+            return null;
+        }
+    }
+
     getMoveHistoryString() {
         let historyString = '';
         for (let i = 0; i < this.moveHistory.length; i++) {
@@ -64,13 +72,6 @@ class ChessGame {
     }
 
     move(fromTo) {
-        // Log the move in algebraic notation
-        console.log(
-            `${this.numNextMove}. ${
-                this.toMove === 'white' ? '' : '       '
-            }${fromTo}`
-        );
-
         // Build and store an object containing all move info
         let moveObject = {
             fromTo: fromTo,
@@ -80,9 +81,18 @@ class ChessGame {
             // TODO: any other info here?
 
             // TODO: Finish log stuff (start and end of game)
+            // TODO: Add ChessGame.debugMoveLog property
             // TODO: move on to client.js TODOs
         };
-        this.moveHistory.push(moveObject);
+
+        // Log the move in (almost) algebraic notation
+        console.log(
+            `${this.numNextMove}. ${
+                this.toMove === 'white' ? '' : '       '
+            }${fromTo}${this.toMove === 'white' ? '           ' : '    '}[${
+                moveObject.time_ms
+            }]`
+        );
 
         // Update other instance properties/object
         this.updatePositionReporter({ fromTo: fromTo });
@@ -90,6 +100,23 @@ class ChessGame {
         if (this.toMove === 'white') {
             this.numNextMove++;
         }
+
+        // Update and store the move object
+        if (this.isGameOver() === true) {
+            moveObject.result = this.getEndOfGameState();
+
+            // Log the end-of-game status
+            if (moveObject.result === 'checkmate') {
+                if (moveObject.color === 'white') {
+                    console.log('1-0');
+                } else {
+                    console.log('0-1');
+                }
+            } else {
+                console.log(moveObject.result);
+            }
+        }
+        this.moveHistory.push(moveObject);
 
         return moveObject;
     }

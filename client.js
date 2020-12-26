@@ -32,7 +32,15 @@ async function playOneGame() {
     }
 
     // Set opponent engine skill and depth for player
-    await fetch(`${serverAddress}/config?skill=17&depth=6&player=Billy`);
+    let serverEngineSkill = 17;
+    let serverEngineDepth = 6;
+
+    console.log(
+        `Set server engine skill ${serverEngineSkill} and server engine depth ${serverEngineDepth}.`
+    );
+    await fetch(
+        `${serverAddress}/config?skill=${serverEngineSkill}&depth=${serverEngineDepth}&player=Billy`
+    );
 
     // Start a local ChessGame with my color and engine details
     let chessGame = new ChessGame({
@@ -42,7 +50,7 @@ async function playOneGame() {
 
     // Pick a color at random
     let color = randomTrueOrFalse() === true ? 'white' : 'black';
-    console.log(`color: ${color}`);
+    console.log(`Start game as ${color}.`);
 
     // Begin the game with the server
     let response = await (
@@ -57,20 +65,21 @@ async function playOneGame() {
     // Play (the rest of) the game against the server
     while (true) {
         let engineMove = (await chessGame.makeEngineMove()).fromTo;
-        console.log(`My move: ${engineMove}`);
         let response = await (
             await fetch(`${serverAddress}/${engineMove}?player=Billy`)
         ).json();
         if ('move' in response) {
-            console.log(`Server move: ${response.move}`);
+            await chessGame.move(response.move);
         }
-        if ('status' in response) {
-            console.log(`Server reports status '${response.status}'`);
-            return;
-        }
-        await chessGame.move(response.move);
         if (chessGame.isGameOver()) {
-            console.log(`${chessGame.getEndOfGameState()}`);
+            let lastMove = chessGame.getLastMoveInfo();
+            if (lastMove.result === 'checkmate') {
+                if (color === lastMove.color) {
+                    console.log('Client won.');
+                } else {
+                    console.log('Client lost.');
+                }
+            }
             return;
         }
     }
