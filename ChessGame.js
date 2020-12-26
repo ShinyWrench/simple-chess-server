@@ -81,10 +81,6 @@ class ChessGame {
             color: this.toMove,
             time_ms: new Date().getTime(),
             // TODO: any other info here?
-
-            // TODO: Finish log stuff (start and end of game)
-            // TODO: Add ChessGame.debugMoveLog property
-            // TODO: move on to client.js TODOs
         };
 
         // Log the move in (almost) algebraic notation

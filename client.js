@@ -2,13 +2,9 @@ const fetch = require('node-fetch');
 const ChessGame = require('./ChessGame');
 
 // TODO:
-//           Clean up / minimize console.logs
-//               Control whether to do console.log calls with a ChessGame
-//                   constructor object param (?)
 //           Handle end of game messages (also create single/few point(s) for S3 insert)
-//           See if there are other ways to speed up gameplay
 //           Record total piece value differential for each side when game ends (+n or -n)
-//           Add timestamps
+//           See if there are other ways to speed up gameplay
 // TODO: (after all of the above)
 //           Run multiple servers, hit with one client
 //           Do S3 insert
