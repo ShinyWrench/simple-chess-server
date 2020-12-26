@@ -11,7 +11,8 @@ class ChessGame {
     }
 
     constructor(params = {}) {
-        this.moveHistory = 'moves' in params ? params.moves : '';
+        // this.moveHistory is an array of objects with info on one move in each
+        this.moveHistory = 'moves' in params ? params.moves : [];
         this.engineSkill =
             'engineSkill' in params
                 ? params.engineSkill
@@ -31,21 +32,29 @@ class ChessGame {
         return this.moveHistory;
     }
 
-    validateMove(move) {
+    getMoveHistoryString() {
+        let historyString = '';
+        for (let i = 0; i < this.moveHistory.length; i++) {
+            historyString += ` ${this.moveHistory[i].fromTo}`;
+        }
+        return historyString;
+    }
+
+    validateMove(fromTo) {
         // Trim promotion character
-        if (move.length === 5) {
-            move = move.slice(0, 4);
+        if (fromTo.length === 5) {
+            fromTo = fromTo.slice(0, 4);
         }
 
         // Handle moves with improper length
-        if (move.length !== 4) {
+        if (fromTo.length !== 4) {
             return false;
         }
 
         // Search for the move among the legal moves
         let legalMoves = this.positionReporter.moves({ verbose: true });
         for (let i = 0; i < legalMoves.length; i++) {
-            if (move === `${legalMoves[i].from}${legalMoves[i].to}`) {
+            if (fromTo === `${legalMoves[i].from}${legalMoves[i].to}`) {
                 return true;
             }
         }
@@ -54,22 +63,52 @@ class ChessGame {
         return false;
     }
 
-    move(move) {
+    move(fromTo) {
+        // Log the move in algebraic notation
         console.log(
             `${this.numNextMove}. ${
                 this.toMove === 'white' ? '' : '       '
-            }${move}`
+            }${fromTo}`
         );
-        this.moveHistory += ` ${move}`;
-        this.updatePositionReporter({ move: move });
+
+        // Build and store an object containing all move info
+        let moveObject = {
+            fromTo: fromTo,
+            number: this.numNextMove,
+            color: this.toMove,
+            time_ms: new Date().getTime(),
+            // TODO: any other info here?
+
+            // TODO: Finish switching from string to array
+            //           Look at params in 'new ChessGame()' calls
+            //           Look at anything else in the whole project
+            //               that touches moves
+            //           Search for "` "
+            //           Search for "move" (?)
+            // TODO: Fix numNextMove initialization in constructor
+            //       Use moveHistory.length in other spot(s) with numNextMove
+            // TODO: Test everything that the above could affect
+            // TODO: Test debugEngine
+            // TODO: Finish log stuff (start and end of game)
+            // TODO: move on to client.js TODOs
+        };
+        this.moveHistory.push(moveObject);
+
+        // Update other instance properties/object
+        this.updatePositionReporter({ fromTo: fromTo });
         this.toMove = this.positionReporter.turn() === 'w' ? 'white' : 'black';
         if (this.toMove === 'white') {
             this.numNextMove++;
         }
+
+        return moveObject;
     }
 
     async makeEngineMove() {
-        await this.engineCommand(constants.commands.setMoves, this.moveHistory);
+        await this.engineCommand(
+            constants.commands.setMoves,
+            this.getMoveHistoryString()
+        );
         await this.engineCommand(
             constants.commands.setSkillLevel,
             this.engineSkill
@@ -78,20 +117,20 @@ class ChessGame {
             constants.commands.requestMove,
             this.engineDepth
         );
-        this.move(engineMove);
-        return engineMove;
+        return this.move(engineMove);
     }
 
     updatePositionReporter(update) {
-        if ('move' in update) {
-            this.positionReporter.move(update.move, { sloppy: true });
+        if ('fromTo' in update) {
+            this.positionReporter.move(update.fromTo, { sloppy: true });
         } else if ('moves' in update) {
-            update.moves.split(' ').forEach((move) => {
-                if (move.length !== 4 && move.length !== 5) {
+            for (let i = 0; i < update.moves.length; i++) {
+                let fromTo = update.moves[i].fromTo;
+                if (fromTo.length !== 4 && fromTo.length !== 5) {
                     return;
                 }
-                this.positionReporter.move(move, { sloppy: true });
-            });
+                this.positionReporter.move(fromTo, { sloppy: true });
+            }
         } else {
             throw `updatePositionReporter(${JSON.stringify(
                 update

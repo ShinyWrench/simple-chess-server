@@ -65,10 +65,10 @@ class Player {
         Player.updatePlayerRecord(this.ipAddress, this.name, storageObject);
     }
 
-    createNewGame(color, firstWhiteMove = null) {
+    createNewGame(color, firstWhiteMoveInfo = null) {
         this.currentGame = {
             color: color,
-            moves: firstWhiteMove ? ` ${firstWhiteMove}` : '',
+            moves: firstWhiteMoveInfo ? [firstWhiteMoveInfo] : [],
             state: 'playing',
             engineDepth: this.opponentEngineDepth,
             engineSkill: this.opponentEngineSkill,
@@ -88,9 +88,7 @@ class Player {
 
     updateCurrentGame(params) {
         if ('moves' in params) {
-            params.moves.forEach((move) => {
-                this.currentGame.moves += ` ${move}`;
-            });
+            this.currentGame.moves.concat(params.moves);
         }
         if ('state' in params) {
             this.currentGame.state = params.state;

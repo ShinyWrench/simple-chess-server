@@ -56,7 +56,7 @@ async function playOneGame() {
 
     // Play (the rest of) the game against the server
     while (true) {
-        let engineMove = await chessGame.makeEngineMove();
+        let engineMove = (await chessGame.makeEngineMove()).fromTo;
         console.log(`My move: ${engineMove}`);
         let response = await (
             await fetch(`${serverAddress}/${engineMove}?player=Billy`)

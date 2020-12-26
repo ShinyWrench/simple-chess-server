@@ -64,9 +64,9 @@ async function startGame(req, res) {
                 engineSkill: req.player.getOpponentEngineSkill(),
                 engineDepth: req.player.getOpponentEngineDepth(),
             });
-            let engineMove = await chessGame.makeEngineMove();
-            req.player.createNewGame(color, engineMove);
-            res.json({ move: engineMove });
+            let engineMoveInfo = await chessGame.makeEngineMove();
+            req.player.createNewGame(color, engineMoveInfo);
+            res.json({ move: engineMoveInfo.fromTo });
             return;
         }
     } catch (err) {
@@ -112,12 +112,12 @@ async function config(req, res) {
 
 async function move(req, res) {
     try {
-        let clientMove = req.params.move;
+        let clientFromTo = req.params.move;
 
         // Don't allow move if not in game
         if (req.player.isInGame() === false) {
             console.log(
-                `Player ${req.player.name} at ${req.player.ipAddress} tried to move '${clientMove}', but they are not currently in a game`
+                `Player ${req.player.name} at ${req.player.ipAddress} tried to move '${clientFromTo}', but they are not currently in a game`
             );
             res.json({ error: 'error' });
             return;
@@ -127,18 +127,18 @@ async function move(req, res) {
         let chessGame = new ChessGame(req.player.getCurrentChessGameParams());
 
         // Validate the move
-        if (chessGame.validateMove(clientMove) === false) {
+        if (chessGame.validateMove(clientFromTo) === false) {
             res.json({ error: 'invalid move' });
             return;
         }
 
         // Do the move
-        chessGame.move(clientMove);
+        let clientMoveInfo = chessGame.move(clientFromTo);
 
         // Respond if the game is over
         if (chessGame.isGameOver()) {
             req.player.updateCurrentGame({
-                moves: [clientMove],
+                moves: [clientMoveInfo],
                 state: chessGame.getEndOfGameState(),
             });
             res.json({
@@ -148,22 +148,24 @@ async function move(req, res) {
         }
 
         // Do the engine's move
-        let engineMove = await chessGame.makeEngineMove();
+        let engineMoveInfo = await chessGame.makeEngineMove();
 
         // Respond
         if (chessGame.isGameOver()) {
             req.player.updateCurrentGame({
-                moves: [clientMove, engineMove],
+                moves: [clientMoveInfo, engineMoveInfo],
                 state: chessGame.getEndOfGameState(),
             });
             res.json({
-                move: engineMove,
+                move: engineMoveInfo.fromTo,
                 status: chessGame.getEndOfGameState(),
             });
             return;
         } else {
-            req.player.updateCurrentGame({ moves: [clientMove, engineMove] });
-            res.json({ move: engineMove });
+            req.player.updateCurrentGame({
+                moves: [clientMoveInfo, engineMoveInfo],
+            });
+            res.json({ move: engineMoveInfo.fromTo });
             return;
         }
     } catch (err) {
