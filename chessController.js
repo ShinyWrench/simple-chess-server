@@ -5,6 +5,7 @@ const { validationResult } = require('express-validator');
 //       allow client to get a list of commands ('/help')
 //       '/board' or '/showboard' route
 //           show board or toggle whether to include in every move response
+//       use POST requests instead of GET
 //       replace CSV/JSON with actual DB (Mongo?)
 
 function init() {
@@ -60,7 +61,6 @@ async function startGame(req, res) {
         } else if (color === 'black') {
             // Otherwise, do the engine's move and respond with it
             let chessGame = new ChessGame({
-                color: 'black',
                 engineSkill: req.player.getOpponentEngineSkill(),
                 engineDepth: req.player.getOpponentEngineDepth(),
             });

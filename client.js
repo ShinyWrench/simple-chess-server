@@ -32,12 +32,12 @@ async function playOneGame() {
     }
 
     // Set opponent engine skill and depth for player
-    await fetch(`${serverAddress}/config?skill=17&depth=10&player=Billy`);
+    await fetch(`${serverAddress}/config?skill=17&depth=6&player=Billy`);
 
     // Start a local ChessGame with my color and engine details
     let chessGame = new ChessGame({
         engineSkill: 18,
-        engineDepth: 8,
+        engineDepth: 5,
     });
 
     // Pick a color at random
