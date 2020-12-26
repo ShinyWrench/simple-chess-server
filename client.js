@@ -46,6 +46,7 @@ async function playOneGame() {
     let chessGame = new ChessGame({
         engineSkill: 18,
         engineDepth: 5,
+        debugGameLog: true,
     });
 
     // Pick a color at random

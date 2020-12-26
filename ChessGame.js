@@ -26,6 +26,8 @@ class ChessGame {
         this.numNextMove = 1 + Math.floor(this.moveHistory.length / 2);
         this.toMove = this.positionReporter.turn() === 'w' ? 'white' : 'black';
         this.debugEngine = 'debugEngine' in params ? params.debugEngine : false;
+        this.debugGameLog =
+            'debugGameLog' in params ? params.debugGameLog : false;
     }
 
     getMoveHistory() {
@@ -86,13 +88,15 @@ class ChessGame {
         };
 
         // Log the move in (almost) algebraic notation
-        console.log(
-            `${this.numNextMove}. ${
-                this.toMove === 'white' ? '' : '       '
-            }${fromTo}${this.toMove === 'white' ? '           ' : '    '}[${
-                moveObject.time_ms
-            }]`
-        );
+        if (this.debugGameLog === true) {
+            console.log(
+                `${this.numNextMove}. ${
+                    this.toMove === 'white' ? '' : '       '
+                }${fromTo}${this.toMove === 'white' ? '           ' : '    '}[${
+                    moveObject.time_ms
+                }]`
+            );
+        }
 
         // Update other instance properties/object
         this.updatePositionReporter({ fromTo: fromTo });
@@ -106,14 +110,16 @@ class ChessGame {
             moveObject.result = this.getEndOfGameState();
 
             // Log the end-of-game status
-            if (moveObject.result === 'checkmate') {
-                if (moveObject.color === 'white') {
-                    console.log('1-0');
+            if (this.debugGameLog === true) {
+                if (moveObject.result === 'checkmate') {
+                    if (moveObject.color === 'white') {
+                        console.log('1-0');
+                    } else {
+                        console.log('0-1');
+                    }
                 } else {
-                    console.log('0-1');
+                    console.log(moveObject.result);
                 }
-            } else {
-                console.log(moveObject.result);
             }
         }
         this.moveHistory.push(moveObject);
