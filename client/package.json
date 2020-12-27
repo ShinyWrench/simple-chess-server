@@ -1,0 +1,17 @@
+{
+    "name": "express_sandbox",
+    "version": "1.0.0",
+    "description": "",
+    "main": "app.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "chess.js": "^0.11.0",
+        "minimist": "^1.2.5",
+        "node-fetch": "^2.6.1",
+        "stockfish": "^11.0.0"
+    }
+}
