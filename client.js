@@ -1,5 +1,6 @@
 const fetch = require('node-fetch');
 const ChessGame = require('./ChessGame');
+let argv = require('minimist')(process.argv.slice(2));
 
 // TODO: Run multiple servers, hit with one client
 //       Do S3 insert
@@ -100,14 +101,7 @@ const serverAddress = 'http://localhost:3000';
 
 ChessGame.initEngine();
 
-let userParams = {};
-process.argv.forEach((arg) => {
-    if (arg.includes('=')) {
-        userParams[arg.split('=')[0]] = arg.split('=')[1];
-    }
-});
-
-playForever(userParams)
+playForever(argv)
     .then(() => {})
     .catch((err) => {
         console.log(
