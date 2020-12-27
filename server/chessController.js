@@ -1,4 +1,4 @@
-const ChessGame = require('./ChessGame');
+const ChessGame = require('../common/ChessGame');
 const Player = require('./Player');
 const { validationResult } = require('express-validator');
 // TODO:

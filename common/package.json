@@ -9,7 +9,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "express": "^4.17.1",
-        "express-validator": "^6.8.0"
+        "chess.js": "^0.11.0",
+        "stockfish": "^11.0.0"
     }
 }

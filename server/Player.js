@@ -1,4 +1,4 @@
-const constants = require('./constants');
+const constants = require('../common/constants');
 const fs = require('fs');
 
 class Player {

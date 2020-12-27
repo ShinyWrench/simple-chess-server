@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const ChessGame = require('./ChessGame');
+const ChessGame = require('../common/ChessGame');
 let argv = require('minimist')(process.argv.slice(2));
 
 // TODO: Run multiple servers, hit with one client
