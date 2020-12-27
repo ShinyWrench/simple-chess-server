@@ -1,46 +1,53 @@
 const fetch = require('node-fetch');
 const ChessGame = require('./ChessGame');
 
-// TODO:
-//           Record total piece value differential for each side when game ends (+n or -n)
-//           See if there are other ways to speed up gameplay
-// TODO: (after all of the above)
-//           Run multiple servers, hit with one client
-//           Do S3 insert
-//           Write tester(s)
-
-ChessGame.initEngine();
-
-const serverAddress = 'http://localhost:3000';
+// TODO: Run multiple servers, hit with one client
+//       Do S3 insert
+//       See if there are other ways to speed up gameplay
+//       Write tester(s)
 
 function randomTrueOrFalse() {
     return Math.random() < 0.5;
 }
 
-async function playOneGame() {
+async function playOneGame(params) {
+    [
+        'clientEngineSkill',
+        'clientEngineDepth',
+        'serverEngineSkill',
+        'serverEngineDepth',
+        'name',
+    ].forEach((param) => {
+        if (!(param in params)) {
+            throw `Missing param ${param}`;
+        }
+    });
+
+    let clientEngineSkill = params.clientEngineSkill;
+    let clientEngineDepth = params.clientEngineDepth;
+    let serverEngineSkill = params.serverEngineSkill;
+    let serverEngineDepth = params.serverEngineDepth;
+    let playerName = params.name;
+
     // Resign if in the middle of a game
     let status = await (
-        await fetch(`${serverAddress}/status?player=Billy`)
+        await fetch(`${serverAddress}/status?player=${playerName}`)
     ).json();
     if (status.currentGame != null && status.currentGame.state === 'playing') {
-        await fetch(`${serverAddress}/resign?player=Billy`);
+        await fetch(`${serverAddress}/resign?player=${playerName}`);
     }
-
-    // Set opponent engine skill and depth for player
-    let serverEngineSkill = 17;
-    let serverEngineDepth = 6;
 
     console.log(
         `\nSet server engine skill ${serverEngineSkill} and server engine depth ${serverEngineDepth}.`
     );
     await fetch(
-        `${serverAddress}/config?skill=${serverEngineSkill}&depth=${serverEngineDepth}&player=Billy`
+        `${serverAddress}/config?skill=${serverEngineSkill}&depth=${serverEngineDepth}&player=${playerName}`
     );
 
     // Start a local ChessGame with my color and engine details
     let chessGame = new ChessGame({
-        engineSkill: 18,
-        engineDepth: 5,
+        engineSkill: clientEngineSkill,
+        engineDepth: clientEngineDepth,
         debugGameLog: true,
     });
 
@@ -50,7 +57,9 @@ async function playOneGame() {
 
     // Begin the game with the server
     let response = await (
-        await fetch(`${serverAddress}/start?player=Billy&color=${color}`)
+        await fetch(
+            `${serverAddress}/start?player=${playerName}&color=${color}`
+        )
     ).json();
 
     // If we are black, play server's first move in the local ChessGame
@@ -62,7 +71,7 @@ async function playOneGame() {
     while (true) {
         let engineMove = (await chessGame.makeEngineMove()).fromTo;
         let response = await (
-            await fetch(`${serverAddress}/${engineMove}?player=Billy`)
+            await fetch(`${serverAddress}/${engineMove}?player=${playerName}`)
         ).json();
         if ('move' in response) {
             await chessGame.move(response.move);
@@ -81,13 +90,24 @@ async function playOneGame() {
     }
 }
 
-async function playForever() {
+async function playForever(params) {
     while (true) {
-        await playOneGame();
+        await playOneGame(params);
     }
 }
 
-playForever()
+const serverAddress = 'http://localhost:3000';
+
+ChessGame.initEngine();
+
+let userParams = {};
+process.argv.forEach((arg) => {
+    if (arg.includes('=')) {
+        userParams[arg.split('=')[0]] = arg.split('=')[1];
+    }
+});
+
+playForever(userParams)
     .then(() => {})
     .catch((err) => {
         console.log(

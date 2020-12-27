@@ -146,7 +146,6 @@ async function move(req, res) {
             });
             let gameReport = req.player.getCurrentGameReport();
             logGameReport(gameReport);
-            // TODO: Push to S3
             return;
         }
 
@@ -165,7 +164,6 @@ async function move(req, res) {
             });
             let gameReport = req.player.getCurrentGameReport();
             logGameReport(gameReport);
-            // TODO: Push to S3
             return;
         } else {
             req.player.updateCurrentGame({
@@ -223,8 +221,11 @@ function logGameReport(report) {
             logObject[key] = report[key];
         }
     }
+
     // TODO: replace JSON.stringify() with pretty-print
     console.log(JSON.stringify(logObject));
+
+    // TODO: push to S3
 }
 
 exports.init = init;
