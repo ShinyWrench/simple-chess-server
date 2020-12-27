@@ -105,6 +105,16 @@ class Player {
         return this.currentGame;
     }
 
+    getCurrentGameReport() {
+        let report = {};
+        Object.keys(this.currentGame).forEach((key) => {
+            report[key] = this.currentGame[key];
+        });
+        report.ipAddress = this.ipAddress;
+        report.name = this.name;
+        return report;
+    }
+
     getOpponentEngineSkill() {
         return this.opponentEngineSkill;
     }

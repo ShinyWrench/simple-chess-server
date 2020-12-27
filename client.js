@@ -2,7 +2,6 @@ const fetch = require('node-fetch');
 const ChessGame = require('./ChessGame');
 
 // TODO:
-//           Handle end of game messages (also create single/few point(s) for S3 insert)
 //           Record total piece value differential for each side when game ends (+n or -n)
 //           See if there are other ways to speed up gameplay
 // TODO: (after all of the above)
@@ -32,7 +31,7 @@ async function playOneGame() {
     let serverEngineDepth = 6;
 
     console.log(
-        `Set server engine skill ${serverEngineSkill} and server engine depth ${serverEngineDepth}.`
+        `\nSet server engine skill ${serverEngineSkill} and server engine depth ${serverEngineDepth}.`
     );
     await fetch(
         `${serverAddress}/config?skill=${serverEngineSkill}&depth=${serverEngineDepth}&player=Billy`
@@ -47,7 +46,7 @@ async function playOneGame() {
 
     // Pick a color at random
     let color = randomTrueOrFalse() === true ? 'white' : 'black';
-    console.log(`Start game as ${color}.`);
+    console.log(`\nStart game as ${color}.`);
 
     // Begin the game with the server
     let response = await (
@@ -82,10 +81,16 @@ async function playOneGame() {
     }
 }
 
-playOneGame()
+async function playForever() {
+    while (true) {
+        await playOneGame();
+    }
+}
+
+playForever()
     .then(() => {})
     .catch((err) => {
         console.log(
-            `Error in calling playOneGame:\n${err.stack ? err.stack : err}`
+            `Error in calling playForever:\n${err.stack ? err.stack : err}`
         );
     });

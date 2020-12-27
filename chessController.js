@@ -135,7 +135,7 @@ async function move(req, res) {
         // Do the move
         let clientMoveInfo = chessGame.move(clientFromTo);
 
-        // Respond if the game is over
+        // Game is over: update the player record, respond, and log it
         if (chessGame.isGameOver()) {
             req.player.updateCurrentGame({
                 moves: [clientMoveInfo],
@@ -144,13 +144,16 @@ async function move(req, res) {
             res.json({
                 status: chessGame.getEndOfGameState(),
             });
+            let gameReport = req.player.getCurrentGameReport();
+            logGameReport(gameReport);
+            // TODO: Push to S3
             return;
         }
 
         // Do the engine's move
         let engineMoveInfo = await chessGame.makeEngineMove();
 
-        // Respond
+        // Game is over: update the player record, respond, and log it
         if (chessGame.isGameOver()) {
             req.player.updateCurrentGame({
                 moves: [clientMoveInfo, engineMoveInfo],
@@ -160,6 +163,9 @@ async function move(req, res) {
                 move: engineMoveInfo.fromTo,
                 status: chessGame.getEndOfGameState(),
             });
+            let gameReport = req.player.getCurrentGameReport();
+            logGameReport(gameReport);
+            // TODO: Push to S3
             return;
         } else {
             req.player.updateCurrentGame({
@@ -199,6 +205,26 @@ async function getStatus(req, res) {
         console.log(`Error in getStatus:\n${err.stack ? err.stack : err}`);
         res.json({ error: 'error' });
     }
+}
+
+function logGameReport(report) {
+    let logObject = {
+        playerColor: report.color,
+        numMoves: Math.floor((report.moves.length + 1) / 2),
+        startTime_ms: report.moves[0].time_ms,
+        endTime_ms: report.moves[report.moves.length - 1].time_ms,
+        result: report.state,
+    };
+    if (report.state === 'checkmate') {
+        logObject.winner = report.moves[report.moves.length - 1].color;
+    }
+    for (key in report) {
+        if (key !== 'moves' && key !== 'state' && key !== 'color') {
+            logObject[key] = report[key];
+        }
+    }
+    // TODO: replace JSON.stringify() with pretty-print
+    console.log(JSON.stringify(logObject));
 }
 
 exports.init = init;
