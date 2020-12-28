@@ -5,7 +5,7 @@ const { query } = require('express-validator');
 chessController.init();
 
 const app = express();
-const port = 3000;
+const port = parseInt(process.argv[2]);
 
 app.use(chessController.loadPlayer);
 
