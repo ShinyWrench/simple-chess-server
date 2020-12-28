@@ -97,14 +97,142 @@ async function playForever(params) {
     }
 }
 
-const serverAddress = 'http://localhost:3000';
+async function playServers(params) {
+    let servers = params.servers;
+
+    // Prepare each server
+    for (let i = 0; i < servers.length; i++) {
+        // Resign if player has a game in progress
+        let status = await (
+            await fetch(
+                `${servers[i].address}/status?player=${servers[i].clientName}`
+            )
+        ).json();
+        if (
+            status.currentGame != null &&
+            status.currentGame.state === 'playing'
+        ) {
+            await fetch(
+                `${servers[i].address}/resign?player=${servers[i].clientName}`
+            );
+        }
+
+        // Set server engine skill and depth for player
+        console.log(
+            `On server '${servers[i].address}', set server engine skill ${servers[i].serverEngine.engineSkill} and server engine depth ${servers[i].serverEngine.engineDepth}.`
+        );
+        await fetch(
+            `${servers[i].address}/config?skill=${servers[i].serverEngine.engineSkill}&depth=${servers[i].serverEngine.engineDepth}&player=${servers[i].clientName}`
+        );
+    }
+
+    while (true) {
+        for (let i = 0; i < servers.length; i++) {
+            if (
+                !servers[i].chessGame ||
+                servers[i].chessGame == null ||
+                servers[i].chessGame.isGameOver()
+            ) {
+                // If game is over, start a new game
+                let chessGame = new ChessGame({
+                    engineSkill: servers[i].clientEngine.engineSkill,
+                    engineDepth: servers[i].clientEngine.engineDepth,
+                    debugGameLog: true,
+                });
+
+                servers[i].chessGame = chessGame;
+
+                // Pick a color at random
+                let playerColor =
+                    randomTrueOrFalse() === true ? 'white' : 'black';
+                servers[i].playerColor = playerColor;
+                console.log(
+                    `On server '${servers[i].address}', start game as ${playerColor}.`
+                );
+                // Begin the game with the server
+                let response = await (
+                    await fetch(
+                        `${servers[i].address}/start?player=${servers[i].clientName}&color=${playerColor}`
+                    )
+                ).json();
+                // If we are black, play server's first move in the local ChessGame
+                if (playerColor === 'black') {
+                    await chessGame.move(response.move);
+                }
+            } else {
+                // Otherwise, play a move
+                let chessGame = servers[i].chessGame;
+                let engineMove = (await chessGame.makeEngineMove()).fromTo;
+                let response = await (
+                    await fetch(
+                        `${servers[i].address}/${engineMove}?player=${servers[i].clientName}`
+                    )
+                ).json();
+                if ('move' in response) {
+                    await chessGame.move(response.move);
+                }
+                if (chessGame.isGameOver()) {
+                    let lastMove = chessGame.getLastMoveInfo();
+                    if (lastMove.result === 'checkmate') {
+                        if (servers[i].playerColor === lastMove.color) {
+                            console.log(
+                                `Against server '${servers[i].address}', client won.`
+                            );
+                        } else {
+                            console.log(
+                                `Against server '${servers[i].address}', client lost.`
+                            );
+                        }
+                    } else {
+                        console.log(
+                            `Against server '${servers[i].address}', game ended in a ${lastMove.result}.`
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
 
 ChessGame.initEngine();
 
-playForever(argv)
+// playForever(argv)
+//     .then(() => {})
+//     .catch((err) => {
+//         console.log(
+//             `Error in calling playForever:\n${err.stack ? err.stack : err}`
+//         );
+//     });
+
+playServers({
+    servers: [
+        {
+            address: 'http://localhost:3000',
+            serverEngine: {
+                engineSkill: 19,
+                engineDepth: 8,
+            },
+            clientName: '20-7',
+            clientEngine: {
+                engineSkill: 20,
+                engineDepth: 7,
+            },
+        },
+        {
+            address: 'http://localhost:3001',
+            serverEngine: {
+                engineSkill: 19,
+                engineDepth: 8,
+            },
+            clientName: '20-8',
+            clientEngine: {
+                engineSkill: 20,
+                engineDepth: 8,
+            },
+        },
+    ],
+})
     .then(() => {})
     .catch((err) => {
-        console.log(
-            `Error in calling playForever:\n${err.stack ? err.stack : err}`
-        );
+        console.log(`playServers() error:\n${err.stack ? err.stack : err}`);
     });
