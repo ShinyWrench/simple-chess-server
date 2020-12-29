@@ -222,8 +222,7 @@ function logGameReport(report) {
         }
     }
 
-    // TODO: replace JSON.stringify() with pretty-print
-    console.log(JSON.stringify(logObject));
+    console.log(JSON.stringify(logObject, null, 4));
 
     // TODO: push to S3
 }
