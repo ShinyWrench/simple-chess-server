@@ -1,6 +1,9 @@
 const fetch = require('node-fetch');
 const ChessGame = require('../common/ChessGame');
+const fs = require('fs');
 let argv = require('minimist')(process.argv.slice(2));
+
+const SERVER_LIST_JSON_PATH = 'serverList.json';
 
 // TODO: Run multiple servers, hit with one client
 //       Do S3 insert
@@ -203,35 +206,7 @@ ChessGame.initEngine();
 //             `Error in calling playForever:\n${err.stack ? err.stack : err}`
 //         );
 //     });
-
-playServers({
-    servers: [
-        {
-            address: 'http://localhost:3000',
-            serverEngine: {
-                engineSkill: 19,
-                engineDepth: 8,
-            },
-            clientName: '20-7',
-            clientEngine: {
-                engineSkill: 20,
-                engineDepth: 7,
-            },
-        },
-        {
-            address: 'http://localhost:3001',
-            serverEngine: {
-                engineSkill: 19,
-                engineDepth: 8,
-            },
-            clientName: '20-8',
-            clientEngine: {
-                engineSkill: 20,
-                engineDepth: 8,
-            },
-        },
-    ],
-})
+playServers({ servers: JSON.parse(fs.readFileSync(SERVER_LIST_JSON_PATH)) })
     .then(() => {})
     .catch((err) => {
         console.log(`playServers() error:\n${err.stack ? err.stack : err}`);

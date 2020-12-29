@@ -1,0 +1,26 @@
+[
+    {
+        "address": "http://localhost:3000",
+        "serverEngine": {
+            "engineSkill": 19,
+            "engineDepth": 8
+        },
+        "clientName": "20-7",
+        "clientEngine": {
+            "engineSkill": 20,
+            "engineDepth": 7
+        }
+    },
+    {
+        "address": "http://localhost:3001",
+        "serverEngine": {
+            "engineSkill": 20,
+            "engineDepth": 6
+        },
+        "clientName": "20-8",
+        "clientEngine": {
+            "engineSkill": 20,
+            "engineDepth": 6
+        }
+    }
+]
