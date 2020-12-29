@@ -243,7 +243,9 @@ function logGameReport(report) {
                         `S3 upload error:\n${err.stack ? err.stack : err}`
                     );
                 } else {
-                    resolve(`S3 upload success:\n${JSON.stringify(result)}`);
+                    console.log(
+                        `S3 upload success:\n${JSON.stringify(result)}`
+                    );
                 }
             }
         );
