@@ -6,8 +6,7 @@ let argv = require('minimist')(process.argv.slice(2));
 const SERVER_LIST_JSON_DEFAULT_PATH = 'serverList_default.json';
 const SERVER_LIST_JSON_USER_PATH = 'serverList.json';
 
-// TODO: Run multiple servers, hit with one client
-//       Do S3 insert
+// TODO: Do S3 insert
 //       See if there are other ways to speed up gameplay
 //       Write tester(s)
 

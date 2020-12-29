@@ -1,6 +1,11 @@
 const ChessGame = require('../common/ChessGame');
 const Player = require('./Player');
 const { validationResult } = require('express-validator');
+const storageConfig = require('./storageConfig.js');
+const aws = require('aws-sdk');
+const { S3 } = require('aws-sdk');
+let s3 = new aws.S3();
+
 // TODO:
 //       allow client to get a list of commands ('/help')
 //       '/board' or '/showboard' route
@@ -224,7 +229,25 @@ function logGameReport(report) {
 
     console.log(JSON.stringify(logObject, null, 4));
 
-    // TODO: push to S3
+    if (process.env.__USE_S3_STORAGE__) {
+        console.log('uploading to S3');
+        s3.upload(
+            {
+                Bucket: storageConfig.bucketName,
+                Key: `${report.ipAddress}_${report.name}_${logObject.endTime_ms}`,
+                Body: JSON.stringify(logObject),
+            },
+            (err, result) => {
+                if (err) {
+                    console.log(
+                        `S3 upload error:\n${err.stack ? err.stack : err}`
+                    );
+                } else {
+                    resolve(`S3 upload success:\n${JSON.stringify(result)}`);
+                }
+            }
+        );
+    }
 }
 
 exports.init = init;

@@ -1,3 +1,8 @@
+let argv = require('minimist')(process.argv.slice(2));
+if (argv.s3) {
+    process.env.__USE_S3_STORAGE__ = true;
+    console.log('USING S3 STORAGE');
+}
 const express = require('express');
 const chessController = require('./chessController');
 const { query } = require('express-validator');
@@ -5,7 +10,7 @@ const { query } = require('express-validator');
 chessController.init();
 
 const app = express();
-const port = parseInt(process.argv[2]);
+const port = argv.port || 3000;
 
 app.use(chessController.loadPlayer);
 
