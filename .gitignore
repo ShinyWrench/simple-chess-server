@@ -2,3 +2,4 @@
 **/package-lock.json
 upload
 server/gameRecords.json
+client/serverList.json

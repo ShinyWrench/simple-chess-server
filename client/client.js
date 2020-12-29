@@ -3,7 +3,8 @@ const ChessGame = require('../common/ChessGame');
 const fs = require('fs');
 let argv = require('minimist')(process.argv.slice(2));
 
-const SERVER_LIST_JSON_PATH = 'serverList.json';
+const SERVER_LIST_JSON_DEFAULT_PATH = 'serverList_default.json';
+const SERVER_LIST_JSON_USER_PATH = 'serverList.json';
 
 // TODO: Run multiple servers, hit with one client
 //       Do S3 insert
@@ -206,7 +207,12 @@ ChessGame.initEngine();
 //             `Error in calling playForever:\n${err.stack ? err.stack : err}`
 //         );
 //     });
-playServers({ servers: JSON.parse(fs.readFileSync(SERVER_LIST_JSON_PATH)) })
+
+let serverJSONPath = fs.existsSync(SERVER_LIST_JSON_USER_PATH)
+    ? SERVER_LIST_JSON_USER_PATH
+    : SERVER_LIST_JSON_DEFAULT_PATH;
+
+playServers({ servers: JSON.parse(fs.readFileSync(serverJSONPath)) })
     .then(() => {})
     .catch((err) => {
         console.log(`playServers() error:\n${err.stack ? err.stack : err}`);
